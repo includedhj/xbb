@@ -1,0 +1,260 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ACK	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+CLIENT	global.h	/^typedef struct _CLIENT CLIENT;$/;"	t	typeref:struct:_CLIENT
+COM_MSG	global.h	/^	COM_MSG = 1$/;"	e	enum:MSG_TYPE
+CXXFLAGS	Makefile	/^CXXFLAGS=-g -Wall -W -Winline -Wno-unused-parameter -Wno-unused-function$/;"	m
+HEAD	global.h	17;"	d
+HEADERS	Makefile	/^HEADERS := *.h $/;"	m
+INCLUDE	Makefile	/^INCLUDE=-I$/;"	m
+KEEP_ALIVE	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+LDLIBS	Makefile	/^LDLIBS = -lpthread$/;"	m
+LOG_IN	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+LOG_OFF	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+MAXLINE	global.h	18;"	d
+MIDLINE	global.h	19;"	d
+MSG_TYPE	global.h	/^enum MSG_TYPE{$/;"	g
+NOTIFY	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+OBJS	Makefile	/^OBJS := $(SOURCES:.cpp=.o)$/;"	m
+ORDER	global.h	/^enum ORDER{$/;"	g
+ORDER_NUM	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+PACKET	global.h	/^} PACKET;$/;"	t	typeref:struct:_PACKET
+PULL_MSG	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+PUSH_MSG	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+RECV_MSG_MAP	global.h	/^typedef struct _RECV_MSG_MAP RECV_MSG_MAP;$/;"	t	typeref:struct:_RECV_MSG_MAP
+RECV_MSG_SEQ	global.h	/^typedef struct _RECV_MSG_SEQ RECV_MSG_SEQ;$/;"	t	typeref:struct:_RECV_MSG_SEQ
+SEND_MSG	global.h	/^	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM$/;"	e	enum:ORDER
+SEND_MSG_MAP	global.h	/^typedef struct _SEND_MSG_MAP SEND_MSG_MAP;$/;"	t	typeref:struct:_SEND_MSG_MAP
+SEND_MSG_POS	global.h	/^}SEND_MSG_POS;$/;"	t	typeref:struct:__anon1
+SEND_MSG_SEQ	global.h	/^typedef struct _SEND_MSG_SEQ SEND_MSG_SEQ;$/;"	t	typeref:struct:_SEND_MSG_SEQ
+SOURCES	Makefile	/^SOURCES := $(wildcard *.cpp)$/;"	m
+SYSTEM_MSG_MAP	global.h	/^} SYSTEM_MSG_MAP;$/;"	t	typeref:struct:__anon2
+SYS_MSG	global.h	/^	SYS_MSG = 0,$/;"	e	enum:MSG_TYPE
+_CLIENT	global.h	/^	_CLIENT() {$/;"	f	struct:_CLIENT	access:public	signature:()
+_CLIENT	global.h	/^typedef struct _CLIENT{$/;"	s
+_CLIENT::_CLIENT	global.h	/^	_CLIENT() {$/;"	f	struct:_CLIENT	access:public	signature:()
+_CLIENT::add_sys_msg_by_id	global.h	/^	void add_sys_msg_by_id(int msg_id, SYSTEM_MSG_MAP * smm)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id, SYSTEM_MSG_MAP * smm)
+_CLIENT::c_lock	global.h	/^	pthread_mutex_t c_lock;\/\/自旋锁？$/;"	m	struct:_CLIENT	access:public
+_CLIENT::check_recv_msg_map	global.h	/^	RECV_MSG_MAP * check_recv_msg_map( int msg_id, int * has_init)$/;"	f	struct:_CLIENT	access:public	signature:( int msg_id, int * has_init)
+_CLIENT::clear_recv_msg_by_id	global.h	/^	void clear_recv_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+_CLIENT::get_send_msg_by_id	global.h	/^	SEND_MSG_MAP * get_send_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+_CLIENT::get_send_msg_nx_by_id	global.h	/^	SEND_MSG_MAP * get_send_msg_nx_by_id(int msg_id, int * has_init)\/\/not exist$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id, int * has_init)
+_CLIENT::get_send_sys_msg_by_id	global.h	/^	SYSTEM_MSG_MAP * get_send_sys_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+_CLIENT::is_on_line	global.h	/^	int is_on_line;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::is_push_msg	global.h	/^	int is_push_msg;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::last_recv_keep_alive_time	global.h	/^	int last_recv_keep_alive_time;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::last_send_keep_alive_time	global.h	/^	int last_send_keep_alive_time;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::login_time	global.h	/^	string login_time;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::name	global.h	/^	char name[32];$/;"	m	struct:_CLIENT	access:public
+_CLIENT::push_com_msg_2_queue	global.h	/^	void push_com_msg_2_queue()$/;"	f	struct:_CLIENT	access:public	signature:()
+_CLIENT::push_sys_msg_2_queue	global.h	/^	void push_sys_msg_2_queue()$/;"	f	struct:_CLIENT	access:public	signature:()
+_CLIENT::recv_msg_arr	global.h	/^	map <int, RECV_MSG_MAP *> recv_msg_arr;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::send_msg_arr	global.h	/^	map <int, SEND_MSG_MAP *> send_msg_arr;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::send_sys_msg_arr	global.h	/^	map <int, SYSTEM_MSG_MAP *> send_sys_msg_arr;$/;"	m	struct:_CLIENT	access:public
+_CLIENT::sin	global.h	/^	struct sockaddr_in sin;$/;"	m	struct:_CLIENT	typeref:struct:_CLIENT::sockaddr_in	access:public
+_PACKET	global.h	/^typedef struct _PACKET{$/;"	s
+_PACKET::data	global.h	/^	unsigned char data[0];$/;"	m	struct:_PACKET	access:public
+_PACKET::from	global.h	/^	char from[16];$/;"	m	struct:_PACKET	access:public
+_PACKET::head	global.h	/^	int head;$/;"	m	struct:_PACKET	access:public
+_PACKET::init	global.h	/^	void init(ORDER order, int len, int msg_id, char *to)$/;"	f	struct:_PACKET	access:public	signature:(ORDER order, int len, int msg_id, char *to)
+_PACKET::len	global.h	/^	int len;$/;"	m	struct:_PACKET	access:public
+_PACKET::msg_id	global.h	/^	int msg_id;$/;"	m	struct:_PACKET	access:public
+_PACKET::order	global.h	/^	ORDER order;$/;"	m	struct:_PACKET	access:public
+_PACKET::to	global.h	/^	char to[16];$/;"	m	struct:_PACKET	access:public
+_RECV_MSG_MAP	global.h	/^typedef struct _RECV_MSG_MAP{$/;"	s
+_RECV_MSG_MAP::add_2_recv_seq_map	global.h	/^	void add_2_recv_seq_map(int seq, char * data, int data_len, int * has_init)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int seq, char * data, int data_len, int * has_init)
+_RECV_MSG_MAP::check_recv_msg_seq	global.h	/^	RECV_MSG_SEQ * check_recv_msg_seq( int seq)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:( int seq)
+_RECV_MSG_MAP::client	global.h	/^	CLIENT * client;$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::dump_msg_2_disk	global.h	/^	char * dump_msg_2_disk(int msg_id)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int msg_id)
+_RECV_MSG_MAP::from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::init	global.h	/^	void init(int msg_id, ORDER order, char * from, int from_len,$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int msg_id, ORDER order, char * from, int from_len, char * to, int to_len, int size,int seq_num)
+_RECV_MSG_MAP::msg_id	global.h	/^	int msg_id;\/\/接收消息id$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::recv_msg_seq_map	global.h	/^	map<int, RECV_MSG_SEQ *> recv_msg_seq_map;$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::recv_seq_num	global.h	/^	int recv_seq_num;$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::seq_num	global.h	/^	int seq_num;\/\/分片数量$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::size	global.h	/^	int size;\/\/语音数据大小，单位字节$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:_RECV_MSG_MAP	access:public
+_RECV_MSG_MAP::~_RECV_MSG_MAP	global.h	/^	~_RECV_MSG_MAP()$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:()
+_RECV_MSG_SEQ	global.h	/^typedef struct _RECV_MSG_SEQ{$/;"	s
+_RECV_MSG_SEQ::data	global.h	/^	void * data;\/\/分片存储数据$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::get_data	global.h	/^	void * get_data()$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:()
+_RECV_MSG_SEQ::init	global.h	/^	void init(int seq, int last_recv_msg_time, char * data, int len)$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:(int seq, int last_recv_msg_time, char * data, int len)
+_RECV_MSG_SEQ::is_send_ack	global.h	/^	unsigned char is_send_ack;\/\/是否发送过ack$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::last_recv_msg_time	global.h	/^	unsigned int last_recv_msg_time;\/\/接收msg的时间$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::last_send_ack_time	global.h	/^	unsigned int last_send_ack_time;\/\/上次发送ack的时间$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::len	global.h	/^	int len;\/\/分片数据大小$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::seq	global.h	/^	int seq; \/\/序号$/;"	m	struct:_RECV_MSG_SEQ	access:public
+_RECV_MSG_SEQ::set_last_send_ack_time	global.h	/^	void set_last_send_ack_time(int lsat)$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:(int lsat)
+_RECV_MSG_SEQ::~_RECV_MSG_SEQ	global.h	/^	~_RECV_MSG_SEQ()$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:()
+_SEND_MSG_MAP	global.h	/^	_SEND_MSG_MAP(){$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+_SEND_MSG_MAP	global.h	/^typedef struct _SEND_MSG_MAP{$/;"	s
+_SEND_MSG_MAP::_SEND_MSG_MAP	global.h	/^	_SEND_MSG_MAP(){$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+_SEND_MSG_MAP::add_2_send_seq_map	global.h	/^	void add_2_send_seq_map(int seq, char * data, int data_len, int * has_init)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int seq, char * data, int data_len, int * has_init)
+_SEND_MSG_MAP::add_msg	global.h	/^	void add_msg(char * data, int len)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(char * data, int len)
+_SEND_MSG_MAP::check_send_msg_seq	global.h	/^	SEND_MSG_SEQ * check_send_msg_seq( int seq)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:( int seq)
+_SEND_MSG_MAP::clear_self	global.h	/^	void clear_self()$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+_SEND_MSG_MAP::from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::get_send_msg_by_seq	global.h	/^	SEND_MSG_SEQ * get_send_msg_by_seq(int seq)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int seq)
+_SEND_MSG_MAP::init	global.h	/^	void init(int msg_id, ORDER order, char * from, char * to, int size, int seq_num)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int msg_id, ORDER order, char * from, char * to, int size, int seq_num)
+_SEND_MSG_MAP::is_send	global.h	/^	unsigned char is_send;\/\/是否发送完成$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::msg_id	global.h	/^	int msg_id;\/\/发送消息id$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::push_2_queue	global.h	/^	void push_2_queue(int msg_id, char * name)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int msg_id, char * name)
+_SEND_MSG_MAP::send_msg_seq_map	global.h	/^    map<int, SEND_MSG_SEQ *> send_msg_seq_map;$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::send_seq_num	global.h	/^	int send_seq_num;\/\/收到ack后加1$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::seq_num	global.h	/^	int seq_num;\/\/分片数量$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::size	global.h	/^	int size;\/\/语音数据大小$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:_SEND_MSG_MAP	access:public
+_SEND_MSG_MAP::~_SEND_MSG_MAP	global.h	/^	~_SEND_MSG_MAP()$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+_SEND_MSG_SEQ	global.h	/^typedef struct _SEND_MSG_SEQ{$/;"	s
+_SEND_MSG_SEQ::data	global.h	/^	void * data;\/\/分片存储数据$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::init	global.h	/^	void init(int seq, void *data, int len)$/;"	f	struct:_SEND_MSG_SEQ	access:public	signature:(int seq, void *data, int len)
+_SEND_MSG_SEQ::is_recv_ack	global.h	/^	unsigned char is_recv_ack; \/\/是否收到ack$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::last_recv_ack_time	global.h	/^	unsigned int last_recv_ack_time;\/\/上次接收到ack的时间$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::last_send_msg_time	global.h	/^	unsigned int last_send_msg_time;\/\/上次发送msg的时间$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::len	global.h	/^	int len;\/\/数据大小$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::retry_send_times	global.h	/^	unsigned char retry_send_times; \/\/发送重试次数，接收方此值默认为0$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::seq	global.h	/^	int seq; \/\/序号$/;"	m	struct:_SEND_MSG_SEQ	access:public
+_SEND_MSG_SEQ::~_SEND_MSG_SEQ	global.h	/^	~_SEND_MSG_SEQ()$/;"	f	struct:_SEND_MSG_SEQ	access:public	signature:()
+__anon1::msg_id	global.h	/^	int  msg_id;\/\/消息id编号$/;"	m	struct:__anon1	access:public
+__anon1::name	global.h	/^	char name[32];\/\/客户端名称$/;"	m	struct:__anon1	access:public
+__anon1::type	global.h	/^	MSG_TYPE  type;\/\/消息类型 SYS_MSG, COM_MSG$/;"	m	struct:__anon1	access:public
+__anon2::data	global.h	/^	unsigned char * data;\/\/数据区$/;"	m	struct:__anon2	access:public
+__anon2::from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:__anon2	access:public
+__anon2::init	global.h	/^	void init(ORDER order, char * from, char * to, char * data,  int size)$/;"	f	struct:__anon2	access:public	signature:(ORDER order, char * from, char * to, char * data, int size)
+__anon2::is_recv_ack	global.h	/^	unsigned char is_recv_ack; \/\/是否收到ack，如果发送的是ack，该字段无效$/;"	m	struct:__anon2	access:public
+__anon2::is_send_ok	global.h	/^	unsigned char is_send_ok; \/\/是否发送成功，主动消息直接判断$/;"	m	struct:__anon2	access:public
+__anon2::last_recv_ack_time	global.h	/^	unsigned int last_recv_ack_time;\/\/接收到ack的时间,如果发送的是ack，该字段无效$/;"	m	struct:__anon2	access:public
+__anon2::last_send_msg_time	global.h	/^	unsigned int last_send_msg_time;\/\/上次发送msg的时间$/;"	m	struct:__anon2	access:public
+__anon2::msg_id	global.h	/^	int msg_id;\/\/消息id$/;"	m	struct:__anon2	access:public
+__anon2::order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:__anon2	access:public
+__anon2::retry_send_times	global.h	/^	unsigned char retry_send_times; \/\/发送重试次数，接收方此值默认为0$/;"	m	struct:__anon2	access:public
+__anon2::size	global.h	/^	int size;\/\/数据区大小$/;"	m	struct:__anon2	access:public
+__anon2::to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:__anon2	access:public
+ack_log_in	udp_server.cpp	/^void ack_log_in(CLIENT * client, int msg_id)$/;"	f	signature:(CLIENT * client, int msg_id)
+ack_log_off	udp_server.cpp	/^void ack_log_off(CLIENT *client, int msg_id)$/;"	f	signature:(CLIENT *client, int msg_id)
+ack_send_msg	udp_server.cpp	/^void ack_send_msg(CLIENT *client,msg_id, seq)$/;"	f	signature:(CLIENT *client,msg_id, seq)
+add_2_recv_seq_map	global.h	/^	void add_2_recv_seq_map(int seq, char * data, int data_len, int * has_init)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int seq, char * data, int data_len, int * has_init)
+add_2_send_seq_map	global.h	/^	void add_2_send_seq_map(int seq, char * data, int data_len, int * has_init)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int seq, char * data, int data_len, int * has_init)
+add_msg	global.h	/^	void add_msg(char * data, int len)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(char * data, int len)
+add_sys_msg_by_id	global.h	/^	void add_sys_msg_by_id(int msg_id, SYSTEM_MSG_MAP * smm)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id, SYSTEM_MSG_MAP * smm)
+c_lock	global.h	/^	pthread_mutex_t c_lock;\/\/自旋锁？$/;"	m	struct:_CLIENT	access:public
+check_client	udp_server.cpp	/^CLIENT * check_client(String name)$/;"	f	signature:(String name)
+check_recv_msg_map	global.h	/^	RECV_MSG_MAP * check_recv_msg_map( int msg_id, int * has_init)$/;"	f	struct:_CLIENT	access:public	signature:( int msg_id, int * has_init)
+check_recv_msg_seq	global.h	/^	RECV_MSG_SEQ * check_recv_msg_seq( int seq)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:( int seq)
+check_send_msg_seq	global.h	/^	SEND_MSG_SEQ * check_send_msg_seq( int seq)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:( int seq)
+clear_recv_msg_by_id	global.h	/^	void clear_recv_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+clear_self	global.h	/^	void clear_self()$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+client	global.h	/^	CLIENT * client;$/;"	m	struct:_RECV_MSG_MAP	access:public
+client_map	global.h	/^map<string, CLIENT *> client_map;\/\/存放client$/;"	v
+create_and_send_com_packet	udp_server.cpp	/^void create_and_send_com_packet(CLIENT *client, int msg_id)$/;"	f	signature:(CLIENT *client, int msg_id)
+create_and_send_system_packet	udp_server.cpp	/^void create_and_send_system_packet(CLIENT * client, int msg_id)$/;"	f	signature:(CLIENT * client, int msg_id)
+create_system_msg	udp_server.cpp	/^void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char * buf, int len, MSG_TYPE type)$/;"	f	signature:(CLIENT * client, ORDER order,char * from, char * to, char * buf, int len, MSG_TYPE type)
+data	global.h	/^	unsigned char * data;\/\/数据区$/;"	m	struct:__anon2	access:public
+data	global.h	/^	unsigned char data[0];$/;"	m	struct:_PACKET	access:public
+data	global.h	/^	void * data;\/\/分片存储数据$/;"	m	struct:_RECV_MSG_SEQ	access:public
+data	global.h	/^	void * data;\/\/分片存储数据$/;"	m	struct:_SEND_MSG_SEQ	access:public
+deal_ack_msg	udp_server.cpp	/^void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr sin)$/;"	f	signature:(PACKET * rcv_pack, struct sockaddr sin)
+deal_heartbeat_msg	udp_server.cpp	/^void deal_heartbeat_msg(String name, struct sockaddr sin)$/;"	f	signature:(String name, struct sockaddr sin)
+deal_log_in	udp_server.cpp	/^void deal_log_in(String name, struct sockaddr rin, int msg_id)$/;"	f	signature:(String name, struct sockaddr rin, int msg_id)
+deal_log_off	udp_server.cpp	/^void deal_log_off(String name, struct sockaddr sin, int msg_id)$/;"	f	signature:(String name, struct sockaddr sin, int msg_id)
+deal_pull_msg	udp_server.cpp	/^void deal_pull_msg(String name , struct sockaddr sin)$/;"	f	signature:(String name , struct sockaddr sin)
+deal_send_msg	udp_server.cpp	/^void deal_send_msg(PACKET * rcv_pack, struct sockaddr sin)$/;"	f	signature:(PACKET * rcv_pack, struct sockaddr sin)
+dispatch	udp_server.cpp	/^void dispatch(struct sockaddr_in *rin, char *buf, int len)$/;"	f	signature:(struct sockaddr_in *rin, char *buf, int len)
+do_business	udp_server.cpp	/^void do_business()$/;"	f	signature:()
+do_business	udp_server.cpp	/^void do_business();$/;"	p	file:	signature:()
+dump_msg_2_disk	global.h	/^	char * dump_msg_2_disk(int msg_id)$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int msg_id)
+from	global.h	/^	char from[16];$/;"	m	struct:_PACKET	access:public
+from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:_RECV_MSG_MAP	access:public
+from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:_SEND_MSG_MAP	access:public
+from	global.h	/^	char from[16];\/\/发送方名称$/;"	m	struct:__anon2	access:public
+get_client	udp_server.cpp	/^CLIENT * get_client()$/;"	f	signature:()
+get_data	global.h	/^	void * get_data()$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:()
+get_send_msg_by_id	global.h	/^	SEND_MSG_MAP * get_send_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+get_send_msg_by_seq	global.h	/^	SEND_MSG_SEQ * get_send_msg_by_seq(int seq)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int seq)
+get_send_msg_nx_by_id	global.h	/^	SEND_MSG_MAP * get_send_msg_nx_by_id(int msg_id, int * has_init)\/\/not exist$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id, int * has_init)
+get_send_sys_msg_by_id	global.h	/^	SYSTEM_MSG_MAP * get_send_sys_msg_by_id(int msg_id)$/;"	f	struct:_CLIENT	access:public	signature:(int msg_id)
+global_send_queue	global.h	/^queue<SEND_MSG_POS *> global_send_queue;\/\/全局发送队列$/;"	v
+head	global.h	/^	int head;$/;"	m	struct:_PACKET	access:public
+init	global.h	/^	void init(ORDER order, char * from, char * to, char * data,  int size)$/;"	f	struct:__anon2	access:public	signature:(ORDER order, char * from, char * to, char * data, int size)
+init	global.h	/^	void init(ORDER order, int len, int msg_id, char *to)$/;"	f	struct:_PACKET	access:public	signature:(ORDER order, int len, int msg_id, char *to)
+init	global.h	/^	void init(int msg_id, ORDER order, char * from, char * to, int size, int seq_num)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int msg_id, ORDER order, char * from, char * to, int size, int seq_num)
+init	global.h	/^	void init(int msg_id, ORDER order, char * from, int from_len,$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:(int msg_id, ORDER order, char * from, int from_len, char * to, int to_len, int size,int seq_num)
+init	global.h	/^	void init(int seq, int last_recv_msg_time, char * data, int len)$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:(int seq, int last_recv_msg_time, char * data, int len)
+init	global.h	/^	void init(int seq, void *data, int len)$/;"	f	struct:_SEND_MSG_SEQ	access:public	signature:(int seq, void *data, int len)
+is_on_line	global.h	/^	int is_on_line;$/;"	m	struct:_CLIENT	access:public
+is_push_msg	global.h	/^	int is_push_msg;$/;"	m	struct:_CLIENT	access:public
+is_recv_ack	global.h	/^	unsigned char is_recv_ack; \/\/是否收到ack$/;"	m	struct:_SEND_MSG_SEQ	access:public
+is_recv_ack	global.h	/^	unsigned char is_recv_ack; \/\/是否收到ack，如果发送的是ack，该字段无效$/;"	m	struct:__anon2	access:public
+is_send	global.h	/^	unsigned char is_send;\/\/是否发送完成$/;"	m	struct:_SEND_MSG_MAP	access:public
+is_send_ack	global.h	/^	unsigned char is_send_ack;\/\/是否发送过ack$/;"	m	struct:_RECV_MSG_SEQ	access:public
+is_send_ok	global.h	/^	unsigned char is_send_ok; \/\/是否发送成功，主动消息直接判断$/;"	m	struct:__anon2	access:public
+last_recv_ack_time	global.h	/^	unsigned int last_recv_ack_time;\/\/接收到ack的时间,如果发送的是ack，该字段无效$/;"	m	struct:__anon2	access:public
+last_recv_ack_time	global.h	/^	unsigned int last_recv_ack_time;\/\/上次接收到ack的时间$/;"	m	struct:_SEND_MSG_SEQ	access:public
+last_recv_keep_alive_time	global.h	/^	int last_recv_keep_alive_time;$/;"	m	struct:_CLIENT	access:public
+last_recv_msg_time	global.h	/^	unsigned int last_recv_msg_time;\/\/接收msg的时间$/;"	m	struct:_RECV_MSG_SEQ	access:public
+last_send_ack_time	global.h	/^	unsigned int last_send_ack_time;\/\/上次发送ack的时间$/;"	m	struct:_RECV_MSG_SEQ	access:public
+last_send_keep_alive_time	global.h	/^	int last_send_keep_alive_time;$/;"	m	struct:_CLIENT	access:public
+last_send_msg_time	global.h	/^	unsigned int last_send_msg_time;\/\/上次发送msg的时间$/;"	m	struct:_SEND_MSG_SEQ	access:public
+last_send_msg_time	global.h	/^	unsigned int last_send_msg_time;\/\/上次发送msg的时间$/;"	m	struct:__anon2	access:public
+len	global.h	/^	int len;$/;"	m	struct:_PACKET	access:public
+len	global.h	/^	int len;\/\/分片数据大小$/;"	m	struct:_RECV_MSG_SEQ	access:public
+len	global.h	/^	int len;\/\/数据大小$/;"	m	struct:_SEND_MSG_SEQ	access:public
+login_time	global.h	/^	string login_time;$/;"	m	struct:_CLIENT	access:public
+main	udp_server.cpp	/^int main()$/;"	f	signature:()
+monitor_server	udp_server.cpp	/^void * monitor_server();$/;"	p	file:	signature:()
+monitor_server	udp_server.cpp	/^void monitor_server()$/;"	f	signature:()
+msg_id	global.h	/^	int  msg_id;\/\/消息id编号$/;"	m	struct:__anon1	access:public
+msg_id	global.h	/^	int msg_id;$/;"	m	struct:_PACKET	access:public
+msg_id	global.h	/^	int msg_id;\/\/发送消息id$/;"	m	struct:_SEND_MSG_MAP	access:public
+msg_id	global.h	/^	int msg_id;\/\/接收消息id$/;"	m	struct:_RECV_MSG_MAP	access:public
+msg_id	global.h	/^	int msg_id;\/\/消息id$/;"	m	struct:__anon2	access:public
+name	global.h	/^	char name[32];$/;"	m	struct:_CLIENT	access:public
+name	global.h	/^	char name[32];\/\/客户端名称$/;"	m	struct:__anon1	access:public
+notify	udp_server.cpp	/^void notify(CLIENT * client)$/;"	f	signature:(CLIENT * client)
+off_client	udp_server.cpp	/^CLIENT * off_client(char * name , struct sockaddr_in sin)$/;"	f	signature:(char * name , struct sockaddr_in sin)
+order	global.h	/^	ORDER order;$/;"	m	struct:_PACKET	access:public
+order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:_RECV_MSG_MAP	access:public
+order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:_SEND_MSG_MAP	access:public
+order	global.h	/^	ORDER order;\/\/命令$/;"	m	struct:__anon2	access:public
+port	global.h	/^int port = 8000;$/;"	v
+push_2_queue	global.h	/^	void push_2_queue(int msg_id, char * name)$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:(int msg_id, char * name)
+push_com_msg_2_queue	global.h	/^	void push_com_msg_2_queue()$/;"	f	struct:_CLIENT	access:public	signature:()
+push_sys_msg_2_queue	global.h	/^	void push_sys_msg_2_queue()$/;"	f	struct:_CLIENT	access:public	signature:()
+recv_msg_arr	global.h	/^	map <int, RECV_MSG_MAP *> recv_msg_arr;$/;"	m	struct:_CLIENT	access:public
+recv_msg_seq_map	global.h	/^	map<int, RECV_MSG_SEQ *> recv_msg_seq_map;$/;"	m	struct:_RECV_MSG_MAP	access:public
+recv_seq_num	global.h	/^	int recv_seq_num;$/;"	m	struct:_RECV_MSG_MAP	access:public
+retry_send_times	global.h	/^	unsigned char retry_send_times; \/\/发送重试次数，接收方此值默认为0$/;"	m	struct:_SEND_MSG_SEQ	access:public
+retry_send_times	global.h	/^	unsigned char retry_send_times; \/\/发送重试次数，接收方此值默认为0$/;"	m	struct:__anon2	access:public
+send_msg	udp_server.cpp	/^void * send_msg();$/;"	p	file:	signature:()
+send_msg	udp_server.cpp	/^void send_msg()$/;"	f	signature:()
+send_msg_arr	global.h	/^	map <int, SEND_MSG_MAP *> send_msg_arr;$/;"	m	struct:_CLIENT	access:public
+send_msg_seq_map	global.h	/^    map<int, SEND_MSG_SEQ *> send_msg_seq_map;$/;"	m	struct:_SEND_MSG_MAP	access:public
+send_seq_num	global.h	/^	int send_seq_num;\/\/收到ack后加1$/;"	m	struct:_SEND_MSG_MAP	access:public
+send_sys_msg_arr	global.h	/^	map <int, SYSTEM_MSG_MAP *> send_sys_msg_arr;$/;"	m	struct:_CLIENT	access:public
+seq	global.h	/^	int seq; \/\/序号$/;"	m	struct:_RECV_MSG_SEQ	access:public
+seq	global.h	/^	int seq; \/\/序号$/;"	m	struct:_SEND_MSG_SEQ	access:public
+seq_num	global.h	/^	int seq_num;\/\/分片数量$/;"	m	struct:_RECV_MSG_MAP	access:public
+seq_num	global.h	/^	int seq_num;\/\/分片数量$/;"	m	struct:_SEND_MSG_MAP	access:public
+set_last_send_ack_time	global.h	/^	void set_last_send_ack_time(int lsat)$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:(int lsat)
+sin	global.h	/^	struct sockaddr_in sin;$/;"	m	struct:_CLIENT	typeref:struct:_CLIENT::sockaddr_in	access:public
+size	global.h	/^	int size;\/\/数据区大小$/;"	m	struct:__anon2	access:public
+size	global.h	/^	int size;\/\/语音数据大小$/;"	m	struct:_SEND_MSG_MAP	access:public
+size	global.h	/^	int size;\/\/语音数据大小，单位字节$/;"	m	struct:_RECV_MSG_MAP	access:public
+sock_fd	global.h	/^int sock_fd = -1;$/;"	v
+target	Makefile	/^target=xbb_server$/;"	m
+to	global.h	/^	char to[16];$/;"	m	struct:_PACKET	access:public
+to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:_RECV_MSG_MAP	access:public
+to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:_SEND_MSG_MAP	access:public
+to	global.h	/^	char to[16];\/\/接收方名称$/;"	m	struct:__anon2	access:public
+type	global.h	/^	MSG_TYPE  type;\/\/消息类型 SYS_MSG, COM_MSG$/;"	m	struct:__anon1	access:public
+update_client_4_log_in	udp_server.cpp	/^CLIENT * update_client_4_log_in(char * name, struct sockaddr_in sin)$/;"	f	signature:(char * name, struct sockaddr_in sin)
+~_RECV_MSG_MAP	global.h	/^	~_RECV_MSG_MAP()$/;"	f	struct:_RECV_MSG_MAP	access:public	signature:()
+~_RECV_MSG_SEQ	global.h	/^	~_RECV_MSG_SEQ()$/;"	f	struct:_RECV_MSG_SEQ	access:public	signature:()
+~_SEND_MSG_MAP	global.h	/^	~_SEND_MSG_MAP()$/;"	f	struct:_SEND_MSG_MAP	access:public	signature:()
+~_SEND_MSG_SEQ	global.h	/^	~_SEND_MSG_SEQ()$/;"	f	struct:_SEND_MSG_SEQ	access:public	signature:()

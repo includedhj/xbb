@@ -247,7 +247,7 @@ void*  monitor_server(void * para)
 		{
 			CLIENT * client = client_it->second;
 
-            if(client.is_on_line == 0)
+            if(client->is_on_line == 0)
                 continue;
 
             /*fot test*/

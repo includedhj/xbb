@@ -336,6 +336,8 @@ typedef struct{
 	void init(ORDER order, char * from, char * to, char * data,  int size)
 	{
 		//³õÊ¼»¯smm
+		bzero(this->from,16);
+        bzero(this->to, 16);
 		this->msg_id = rand()%65536;
 		this->order = order;
 		this->data = (unsigned char *)malloc(size);
@@ -592,6 +594,8 @@ typedef struct _PACKET{
 	unsigned char data[0];
 	void init(ORDER order, int len, int msg_id, char *to)
 	{
+        bzero(this->from, 16);
+        bzero(this->to, 16);
 		head = HEAD;
 		order = order;
 		this->len = sizeof(_PACKET) + len;

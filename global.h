@@ -14,11 +14,13 @@
 
 using namespace std;
 
-#define HEAD 0x01
+#define HEAD 0xff
 #define MAXLINE 10240
 #define MIDLINE 1024
 int port = 44444;
 int sock_fd = -1;
+int get_time();
+void get_time_str(char * time_str);
 
 //命令分类
 enum ORDER{
@@ -270,14 +272,14 @@ typedef struct _RECV_MSG_MAP{
 	}
 	void add_2_recv_seq_map(int seq, char * data, int data_len, int * has_init)
 	{
-		int time = 9999;//接收到包的时间，取当前时间
+		
 		RECV_MSG_SEQ * rms  = check_recv_msg_seq(seq);
 		if(rms == NULL)
 		{
 			rms = new RECV_MSG_SEQ();
 			recv_seq_num++;
-
-			rms->init(seq, time, data, data_len);
+            int t = get_time();//接收到包的时间，取当前时间
+			rms->init(seq, t, data, data_len);
 
 			//添加到recv_msg_seq_map中
 			recv_msg_seq_map.insert(pair<int, RECV_MSG_SEQ*>(seq, rms));
@@ -505,7 +507,8 @@ typedef struct _CLIENT{
 			else  if(sys_smm->is_send_ok == 1 && sys_smm->is_recv_ack ==0  && sys_smm->order == NOTIFY)
 			{
 				//2s内没受到ack， 重发此消息包
-				if(9999 - sys_smm->last_send_msg_time > 2 )
+				int t = get_time();
+				if(t - sys_smm->last_send_msg_time > 2 )
 				{
 					SEND_MSG_POS * smp = (SEND_MSG_POS *)malloc(sizeof(SEND_MSG_POS));
 					smp->msg_id = sys_smm->msg_id;
@@ -597,11 +600,11 @@ typedef struct _PACKET{
         bzero(this->from, 16);
         bzero(this->to, 16);
 		head = HEAD;
-		order = order;
+		this->order = order;
 		this->len = sizeof(_PACKET) + len;
         memcpy(from, "server", 16);
 		memcpy(this->to, to, 16);
-		msg_id = msg_id;
+		this->msg_id = msg_id;
 	}
     void out_put()
     {

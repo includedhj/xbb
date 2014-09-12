@@ -16,9 +16,11 @@
 #include <stdlib.h>
 #include "global.h"
 #include "json/json.h"
+#include <sys/time.h>
 //#include <signal.h>
 
 using namespace std;
+
 
 char * SERVER  = "SERVER";
 void dispatch(struct sockaddr_in rin, char *buf, int len);
@@ -27,8 +29,8 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin);
 void deal_log_off(string name, struct sockaddr_in sin, int msg_id);
 void deal_pull_msg(string name , struct sockaddr_in sin);
 void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin);
-void deal_heartbeat_msg(string name, struct sockaddr_in sin);
-CLIENT * off_client(string name , struct sockaddr_in sin);
+void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id);
+CLIENT * off_client(string name, int by_client);//客户端主动下线 1/服务端踢下线 0
 CLIENT * check_client(string name);
 void create_and_send_com_packet(CLIENT *client, int msg_id);
 void create_and_send_system_packet(CLIENT * client, int msg_id);
@@ -44,6 +46,10 @@ CLIENT * update_client_4_log_in(string name, struct sockaddr_in sin);
 void * monitor_server(void * para);
 void * send_msg(void * para);
 void do_business();
+void ack_heartbeat_msg(CLIENT * client, int msg_id);
+void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char * buf, int len, MSG_TYPE type);
+CLIENT * update_client (string name, struct sockaddr_in rin);
+
 
 void init() {
 	struct sockaddr_in sin;
@@ -122,6 +128,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 	PACKET * rcv_pack = (PACKET *) buf;
 
     /*for test*/
+    printf("recv packet:");
     rcv_pack->out_put();
     /*for test*/
 
@@ -206,7 +213,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 			 * */
             {
                 string name = rcv_pack->from;
-                deal_heartbeat_msg(name, rin);
+                deal_heartbeat_msg(name, rin, rcv_pack->msg_id);
                 break;
             }
 		case ACK:
@@ -247,19 +254,22 @@ void*  monitor_server(void * para)
 		{
 			CLIENT * client = client_it->second;
 
-            if(client->is_on_line == 0)
-                continue;
-
-            /*fot test*/
+             /*fot test*/
             client->output();
             /*for test*/
 
+            if(client->is_on_line == 0)
+                continue;
+
+           
+
             //当前时间-上次接收心跳时间 > 15s
-			if(9999 - client->last_recv_keep_alive_time > 15)
+            int t = get_time();
+			if(t - client->last_recv_keep_alive_time > 15)
 			{
 				//将客户端踢下线
-                struct sockaddr_in rin;
-				off_client(client->name, rin);
+                //struct sockaddr_in rin;
+				off_client(client->name, 0);
 			}
 
 			/*
@@ -277,7 +287,7 @@ void*  monitor_server(void * para)
 		}
 
 		//休眠10ms
-		usleep(2000*1000);
+		usleep(5000*1000);
 	}
     return (void *)0;
 }
@@ -347,7 +357,8 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			 * 间隔时间2s，没收到，重发
 			 * 小于2s，等待下次检测
 			 * */
-			if(9999 - sms->last_send_msg_time < 2)
+			int t = get_time();
+			if(t - sms->last_send_msg_time < 2)
 				continue;
 			int send_len = sizeof(PACKET) + sms->len;
 			char * send_msg = (char *)malloc(send_len);
@@ -362,7 +373,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 				return;
 			}
 			sms->retry_send_times++;
-			sms->last_send_msg_time=9999;//上次发送消息时间
+			sms->last_send_msg_time=t;//上次发送消息时间
 		}
 	}
 
@@ -407,7 +418,7 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 		return;
 	}
 	sys_smm->retry_send_times++;
-	sys_smm->last_send_msg_time = 9999;//当前时间
+	sys_smm->last_send_msg_time = get_time();//当前时间
 	if(sys_smm->order == ACK)
 	{
         sys_smm->is_send_ok = 1;
@@ -416,16 +427,36 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	}
 }
 
-void deal_heartbeat_msg(string name, struct sockaddr_in sin)
+void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id)
 {
 
 	CLIENT * client = check_client(name);
 	if(client == NULL)
 	{
-		return;
+		client = update_client(name,sin);
 	}
     memcpy(&client->sin, &sin, sizeof(struct sockaddr_in));
-	client->last_recv_keep_alive_time = 9999;//当前时间
+	client->last_recv_keep_alive_time = get_time();//当前时间
+	ack_heartbeat_msg(client, msg_id);
+}
+//发送登录的ack
+void ack_heartbeat_msg(CLIENT * client, int msg_id)
+{
+	string data;
+	Json::Value value;
+	value["ACK_MSG_ID"] = int(msg_id);
+	value["ACK_MSG_ORDER"] = KEEP_ALIVE;
+
+	Json::FastWriter writer;
+	data = writer.write( value );
+    //临时
+    char * buf = (char *)malloc(data.length()+1);
+    memset(buf, 0, data.length()+1);
+    strcpy(buf, data.c_str());
+    //临时拷贝
+    int len = data.length();
+
+	create_system_msg(client, ACK, SERVER, client->name,buf, len, SYS_MSG );
 }
 /*
  * 接收客户端发送的语音message,*/
@@ -440,7 +471,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 	//client加锁
     //lock(client->c_lock);
     memcpy(&client->sin, &sin, sizeof(struct sockaddr_in));
-	client->last_recv_keep_alive_time = 9999;//当前时间
+	client->last_recv_keep_alive_time = get_time();//当前时间
     //unlock(client->c_lock);
 	//解析send消息
 	int seq = -1;
@@ -512,7 +543,7 @@ void deal_pull_msg(string name , struct sockaddr_in sin)
 	}
 	//lock(client->c_lock);
 	client->sin = sin;//更新sock addr
-	client->last_recv_keep_alive_time = 9999;//当前时间
+	client->last_recv_keep_alive_time = get_time();//当前时间
 	client->is_push_msg = 1;
 
 	//unlock(client->c_lock);
@@ -523,7 +554,7 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 	char *data = (char *)rcv_pack->data;
 	CLIENT * client = check_client(rcv_pack->from);
 	client->sin = sin;
-	client->last_recv_keep_alive_time = 9999;//当前时间
+	client->last_recv_keep_alive_time = get_time();//当前时间
 	if(client == NULL)
 	{
 		//log client 为空
@@ -546,7 +577,7 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 			printf("SYSTEM_MSG_MAP is null, msgid:[%d]", msg_id);
 		}
 		smm->is_recv_ack = 1;
-		smm->last_recv_ack_time = 9999;//当前时间
+		smm->last_recv_ack_time = get_time();//当前时间
 	}
 	else if(ack_order == PUSH_MSG)
 	{
@@ -558,14 +589,14 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 		}
 		SEND_MSG_SEQ * sms = smm->get_send_msg_by_seq(seq);
 		sms->is_recv_ack = 1;
-		sms->last_recv_ack_time = 9999;//取当前时间
+		sms->last_recv_ack_time = get_time();//取当前时间
 	}
 
 }
 
 void deal_log_off(string name, struct sockaddr_in sin, int msg_id)
 {
-	CLIENT * client =	off_client(name, sin);
+	CLIENT * client =	off_client(name, 1);
 	//回ack,放入回ack的消息队列
 	if (client != NULL)
 		ack_log_off(client, msg_id);
@@ -573,7 +604,7 @@ void deal_log_off(string name, struct sockaddr_in sin, int msg_id)
 
 void deal_log_in(string name, struct sockaddr_in  rin, int msg_id)
 {
-	CLIENT * client = update_client_4_log_in(name, rin);
+	CLIENT * client = update_client(name, rin);
 
 	//将当前发送消息队列已发送标志位全部置为0，标记需要全部发送
 	//send_msg_arr 正在发送的清空发送标记
@@ -590,7 +621,7 @@ void deal_log_in(string name, struct sockaddr_in  rin, int msg_id)
 	}
 }
 
-CLIENT * off_client(string  name , struct sockaddr_in sin)
+CLIENT * off_client(string  name , int by_client)
 {
 	CLIENT * client = check_client(name);
 
@@ -600,23 +631,30 @@ CLIENT * off_client(string  name , struct sockaddr_in sin)
 		//回ack
 		return NULL;
 	}
-	client->sin = sin;
-	client->last_recv_keep_alive_time = 9999;//当前时间
+    //客户端主动下线
+    if(by_client == 1)
+    {
+	 
+       
+        client->last_recv_keep_alive_time = get_time();//当前时间
+    }
+	
 	if(client->is_on_line == 0)
 	{
 		//已下线，记录客户端重复发送下线消息
-
+		return client;
 	}
+    client->is_on_line = 0;
 	//不再push语音消息
 	client->is_push_msg = 0;
 	//正在发送和接收的语音消息清空
-	//client->recv_msg_arr.clear();
-	//client->send_msg_arr.clear();
+	client->recv_msg_arr.clear();
+	client->send_msg_arr.clear();
 	return client;
 }
 
 
-CLIENT * update_client_4_log_in(string name, struct sockaddr_in rin)
+CLIENT * update_client (string name, struct sockaddr_in rin)
 {
 	CLIENT * client = check_client(name);
 	if(client == NULL)
@@ -633,12 +671,14 @@ CLIENT * update_client_4_log_in(string name, struct sockaddr_in rin)
 	//lock(client->c_lock);
 	//保存数据到客户端
 	//更新心跳时间
-	client->last_recv_keep_alive_time = 9999;//当前时间
+	client->last_recv_keep_alive_time = get_time();//当前时间
 	client->last_send_keep_alive_time = 0;
 
 	client->is_on_line = 1;//是否在线
 	client->is_push_msg = 0;//是否发送push
-	client->login_time = "2000-01-01 00:00:00";
+	char time_str[32];
+    get_time_str(time_str);
+	client->login_time = time_str;
 	//client->sin = sin;//更新
 	memcpy(&client->sin, &rin, sizeof(struct sockaddr_in));
 	//client 解锁
@@ -754,4 +794,18 @@ void notify(CLIENT * client)
 	create_system_msg(client, NOTIFY,SERVER, client->name,NULL, 0, SYS_MSG);
 	//发送完notify后，等待客户端的pull消息，client中不做变化
 }
-
+int get_time()
+{
+     struct timeval t;  
+     gettimeofday(&t,NULL);
+     return t.tv_sec;
+}
+//获取当前字符串时间
+void  get_time_str(char * str)
+{
+     time_t   timep;   
+     time(&timep);   
+     strcpy(str,ctime(&timep));
+     int len=strlen(str);
+     str[len - 1] = '\0';
+}

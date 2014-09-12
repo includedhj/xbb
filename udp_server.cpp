@@ -433,9 +433,11 @@ void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id)
 	CLIENT * client = check_client(name);
 	if(client == NULL)
 	{
-		client = update_client(name,sin);
+	   return;
 	}
-    memcpy(&client->sin, &sin, sizeof(struct sockaddr_in));
+	if(client->has_ever_login == 1)
+		client->is_on_line = 1;
+	memcpy(&client->sin, &sin, sizeof(struct sockaddr_in));
 	client->last_recv_keep_alive_time = get_time();//当前时间
 	ack_heartbeat_msg(client, msg_id);
 }
@@ -644,7 +646,7 @@ CLIENT * off_client(string  name , int by_client)
 		//已下线，记录客户端重复发送下线消息
 		return client;
 	}
-    client->is_on_line = 0;
+	client->is_on_line = 0;
 	//不再push语音消息
 	client->is_push_msg = 0;
 	//正在发送和接收的语音消息清空
@@ -676,8 +678,9 @@ CLIENT * update_client (string name, struct sockaddr_in rin)
 
 	client->is_on_line = 1;//是否在线
 	client->is_push_msg = 0;//是否发送push
+	client->has_ever_login = 1;
 	char time_str[32];
-    get_time_str(time_str);
+	get_time_str(time_str);
 	client->login_time = time_str;
 	//client->sin = sin;//更新
 	memcpy(&client->sin, &rin, sizeof(struct sockaddr_in));

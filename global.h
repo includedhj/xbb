@@ -367,6 +367,7 @@ typedef struct _CLIENT{
 	char name[32];
 	//是否正在发送push消息
 	int is_push_msg;
+	int has_ever_login;
 	//是否在线
 	int is_on_line;
 	//登录时间
@@ -397,6 +398,7 @@ typedef struct _CLIENT{
         strncpy(this->name, name, 16);
 		is_push_msg = 0;
 		is_on_line = 0;
+		has_ever_login = 0;
 		//init vector
 	}
     void output()

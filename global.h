@@ -18,7 +18,7 @@ using namespace std;
 #define MAXLINE 10240
 #define MIDLINE 1024
 int port = 44444;
-int per_seq_size = 1500;
+int per_seq_size = 1000;
 int sock_fd = -1;
 int get_time();
 void get_time_str(char * time_str);
@@ -199,7 +199,7 @@ typedef struct _SEND_MSG_MAP{
 		}
 		else
 		{
-			printf("[%d] has already exist\n", seq);
+			printf("waring:[%d] has already exist\n", seq);
 		}
 			
 	
@@ -349,12 +349,13 @@ typedef struct{
 	unsigned int last_send_msg_time;//上次发送msg的时间
 	unsigned int last_recv_ack_time;//接收到ack的时间,如果发送的是ack，该字段无效
 	unsigned char * data;//数据区
-	void init(ORDER order, char * from, char * to, char * data,  int size)
+	//CLIENT * cli;
+	void init(ORDER order, char * from, char * to, char * data,  int size, int msg_id)
 	{
 		//初始化smm
 		bzero(this->from,16);
         bzero(this->to, 16);
-		this->msg_id = rand()%65536;
+		
 		this->order = order;
 		this->data = (unsigned char *)malloc(size);
 		memcpy(this->data, data, size);
@@ -368,6 +369,8 @@ typedef struct{
 		this->is_send_ok = 0;
 		this->is_recv_ack = 0;
 		this->size = size;
+		//this->cli = cli;
+		this->msg_id = msg_id;
 	}
 
 
@@ -406,6 +409,7 @@ typedef struct _CLIENT{
 	map <int, SYSTEM_MSG_MAP *> send_sys_msg_arr;
 
 	pthread_mutex_t c_lock;//自旋锁？
+	unsigned int msg_id ;
 
 
 	_CLIENT(const char * name) {
@@ -413,8 +417,14 @@ typedef struct _CLIENT{
 		is_push_msg = 0;
 		is_on_line = 0;
 		has_ever_login = 0;
+		msg_id = rand()%65535;
 		//init vector
 	}
+	int gen_msgid()
+	{
+		return msg_id++;
+	}
+		
     void output()
     {
         printf("\nclient output:\n");
@@ -521,7 +531,7 @@ typedef struct _CLIENT{
 
 
 
-	void push_sys_msg_2_queue()
+	int push_sys_msg_2_queue()
 	{
 		//系统消息数据队列
 		/*
@@ -531,8 +541,10 @@ typedef struct _CLIENT{
 		 * 4.如果发送完成，收到ack，删除
 		 * */
 		map <int, SYSTEM_MSG_MAP *>::iterator sys_smm_it;
+		int msg_count = 0;
 		for(sys_smm_it=send_sys_msg_arr.begin(); sys_smm_it !=  send_sys_msg_arr.end(); ++sys_smm_it)
 		{
+			msg_count++;
 			SYSTEM_MSG_MAP * sys_smm = sys_smm_it->second;
 			//还未发送，不需要删除
 			if(sys_smm->is_send_ok != 1)
@@ -545,7 +557,7 @@ typedef struct _CLIENT{
 				//客户端已经开始pull消息，删除notify消息，不需要再发送
 				if(is_push_msg == 1)
 				{
-					printf("delte notify msg\n");
+					printf("delte notify msg from send map\n");
 					send_sys_msg_arr.erase(sys_smm->msg_id);
 					delete sys_smm;
 					continue;
@@ -578,6 +590,7 @@ typedef struct _CLIENT{
 			}
 
 		}
+		return msg_count;
 	}
 	void push_com_msg_2_queue()
 	{
@@ -590,9 +603,9 @@ typedef struct _CLIENT{
 			 SEND_MSG_MAP * smm = it->second;
 
 			 //将自己清空
-			 smm->clear_self();
+			 //smm->clear_self();
 			 //语音数据push到发送队列
-			 if(this->is_push_msg)
+			 if(this->is_push_msg && smm->is_send == 0)
 				 smm->push_2_queue(smm->msg_id, name);
 			 //发送结束
 			 if(smm->is_send == 1)

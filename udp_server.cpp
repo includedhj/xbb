@@ -22,7 +22,7 @@
 using namespace std;
 
 
-char * SERVER  = "SERVER";
+ char * SERVER  = "SERVER";
 void dispatch(struct sockaddr_in rin, char *buf, int len);
 void deal_log_in(string name, struct sockaddr_in rin, int msg_id);
 void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin);
@@ -141,7 +141,7 @@ void do_business()
             continue;
 		}
 		printf("----------------------------------\n"
-			   "you ip is %s at port %d, len:%d\n",	inet_ntop(AF_INET, &rin.sin_addr, str, sizeof(str)),
+			   "remote ip is %s at port %d, len:%d\n",	inet_ntop(AF_INET, &rin.sin_addr, str, sizeof(str)),
 												ntohs(rin.sin_port),
 												len
 												);
@@ -155,7 +155,6 @@ void do_business()
 void dispatch(struct sockaddr_in rin, char *buf, int len)
 {
 	//接收数据，分割数据包
-	int i = 0;
 	PACKET * rcv_pack = (PACKET *) buf;
 
     /*for test*/
@@ -176,6 +175,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 		return;
 	}
 
+	
 
 	//real dispatch order
 
@@ -264,11 +264,20 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
                 break;
             }
 	}
+	//更新心跳时间
+	CLIENT * client = check_client(rcv_pack->from);
+	if(client == NULL)
+   {
+		return;
+	}
+	client->last_recv_keep_alive_time = get_time();//当前时间
 
 }
 
 void*  monitor_server(void * para)
 {
+	int t = 0;
+
 	while(1)
 	{
 		/* 1.检查客户端状态
@@ -282,12 +291,14 @@ void*  monitor_server(void * para)
 		 * */
 
 		map<string, CLIENT *>::iterator client_it;//存放client
+		t++;
 		for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
 		{
 			CLIENT * client = client_it->second;
 
              /*fot test*/
-            // client->output();
+			if(t%5 == 0)
+            	client->output();
             /*for test*/
 
             if(client->is_on_line == 0)
@@ -295,9 +306,9 @@ void*  monitor_server(void * para)
 
            
 
-            //当前时间-上次接收心跳时间 > 15s
+            //当前时间-上次接收心跳时间 > 60s
             int t = get_time();
-			if(t - client->last_recv_keep_alive_time > 15)
+			if(t - client->last_recv_keep_alive_time > 60)
 			{
 				//将客户端踢下线
                 //struct sockaddr_in rin;
@@ -306,7 +317,13 @@ void*  monitor_server(void * para)
 
 			/*
 			 * 系统消息队列发送*/
-			client->push_sys_msg_2_queue();
+			int msg_count = client->push_sys_msg_2_queue();
+			if(msg_count == 0)
+			{
+			//语音消息已经发送完毕，清空pull_msg状态
+				client->is_push_msg = 0;
+			}
+				
 
 			//语音消息队列
 			/*检查消息是否发送完成
@@ -319,7 +336,8 @@ void*  monitor_server(void * para)
 		}
 
 		//休眠10ms
-		usleep(8000*1000);
+		
+		usleep(2000*1000);
 	}
     return (void *)0;
 }
@@ -327,7 +345,7 @@ void*  monitor_server(void * para)
 void main_output()
 {
     printf("\nmain monitor:\n");
-    printf("global_send_queue size:[%d]\n", global_send_queue.size());
+    printf("global_send_queue size:[%d]\n", (int)global_send_queue.size());
 }
 
 void* send_msg(void * para)
@@ -354,6 +372,7 @@ void* send_msg(void * para)
 		switch(smp->type)
 		{
 		case COM_MSG:
+			//printf("\npush data msg_id:[%d]\n", smp->msg_id);
 			create_and_send_com_packet(client, smp->msg_id);
 			break;
 		case SYS_MSG:
@@ -413,10 +432,10 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			memcpy(send_msg+sizeof(PACKET), data.c_str(), json_len);
 			memcpy(send_msg+sizeof(PACKET)+json_len, sms->data, sms->len);
 			char str[1024];
-			printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
-												ntohs(client->sin.sin_port),
-												send_len
-												);
+			//printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
+			//									ntohs(client->sin.sin_port),
+			//									send_len);
+			printf("=====>send voice data");									
 			packet.out_put();
 			printf("%s\n", data.c_str());
 			printf("----------------------------------\n");
@@ -430,6 +449,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			}
 			sms->retry_send_times++;
 			sms->last_send_msg_time=t;//上次发送消息时间
+			client->last_send_keep_alive_time = t;
 		}
 	}
 
@@ -450,11 +470,11 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	pack.init(sys_smm->order, sys_smm->size, sys_smm->msg_id,sys_smm->size, sys_smm->to);
     /*for test begin*/
 	char str_data[1024];
-    printf("<====send packet:");
+    printf("<====send sys packet:");
     pack.out_put();
 	bzero(str_data, 1024);
 	memcpy(str_data, sys_smm->data, sys_smm->size);
-	printf("%s\n", str_data);
+	//printf("%s\n", str_data);
     /*for test end*/
 	/*将数据包拼装到一起后发送*/
 	int send_len =sys_smm->size+sizeof(PACKET);
@@ -464,11 +484,11 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
     
     /*for test begin*/
     char str[MIDLINE];
-    printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
-												ntohs(client->sin.sin_port),
-												send_len
-												);
-	printf("----------------------------------\n");
+    //printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
+	//											ntohs(client->sin.sin_port),
+	//											send_len
+	//											);
+	//printf("----------------------------------\n");
     /*for test end*/
 
 	int ret = sendto(sock_fd, send_msg, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
@@ -480,7 +500,8 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	}
 	sys_smm->retry_send_times++;
 	sys_smm->last_send_msg_time = get_time();//当前时间
-	if(sys_smm->order == ACK)
+	client->last_send_keep_alive_time = get_time();
+	if(sys_smm->order == ACK ||sys_smm->order == NOTIFY)
 	{
         sys_smm->is_send_ok = 1;
         sys_smm->is_recv_ack = 1;
@@ -575,14 +596,15 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 		CLIENT * to_client = check_client(rcv_pack->to);
 		if(to_client == NULL)
 		{
+			//printf("new_offline_client\n";)
 			to_client = new_offline_client(rcv_pack->to);
 		}
-		printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
-			to_client->is_on_line, rmm->size);
+		//printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
+		//	to_client->is_on_line, rmm->size);
 			
 
-		//随机一个发送msgid
-		int to_msg_id = rand()%65536;
+		//生成一个msg_id
+		int to_msg_id = to_client->gen_msgid();
 		SEND_MSG_MAP * smm = to_client->get_send_msg_nx_by_id(to_msg_id, &has_init);
 		if(has_init == 1)
 		{
@@ -600,6 +622,8 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 		free(data);
 
 		//检查to是否已经开启了pull_msg，如果开启了，直接挂载，不用发送notify
+		//printf("to_client detail:\n");
+		//to_client->output();
 		if(to_client->is_push_msg == 0&& to_client->is_on_line == 1)
 		{
 			notify(to_client);
@@ -609,7 +633,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 
 void deal_pull_msg(string name , struct sockaddr_in sin)
 {
-	printf("receive [%s] pull_msg ", name.c_str());
+	//printf("receive [%s] pull_msg ", name.c_str());
 	CLIENT * client = check_client(name);
 	if(client == NULL)
 	{
@@ -674,15 +698,22 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 	else if(ack_order == PUSH_MSG)
 	{
 		int seq;// = (int)data["ACK_MSG_SEQ"];
-		seq = value.get( "seq", -1).asInt();
+		seq = value.get( "ACK_MSG_SEQ", -1).asInt();
 		SEND_MSG_MAP * smm = client->get_send_msg_by_id(msg_id);
 		if(smm == NULL)
 		{
 			return;
 		}
 		SEND_MSG_SEQ * sms = smm->get_send_msg_by_seq(seq);
+		if(sms->is_recv_ack == 0)
+		{
+			smm->send_seq_num++;
+			if(smm->send_seq_num == smm->seq_num)
+				smm->is_send = 1;
+		}
 		sms->is_recv_ack = 1;
 		sms->last_recv_ack_time = get_time();//取当前时间
+		
 	}
 
 }
@@ -731,7 +762,8 @@ CLIENT * off_client(string  name , int by_client)
        
         client->last_recv_keep_alive_time = get_time();//当前时间
     }
-	
+
+	printf("WARNING:client[%s]  now  offline,by_client[%d]\n",name.c_str(), by_client);
 	if(client->is_on_line == 0)
 	{
 		//已下线，记录客户端重复发送下线消息
@@ -804,7 +836,7 @@ void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char
 	SYSTEM_MSG_MAP * smm  =	(SYSTEM_MSG_MAP *)malloc( sizeof(SYSTEM_MSG_MAP));
 
 	//初始化SYSTEM_MSG_MAP
-	smm->init( order,  from,  to,  buf, len);
+	smm->init( order,  from,  to,  buf, len, client->gen_msgid());
 
 
 	//smm加入到client中(记得加锁噢)，
@@ -903,6 +935,7 @@ void ack_log_in(CLIENT * client, int msg_id)
 //发送通知消息
 void notify(CLIENT * client)
 {
+	//printf("----------create and send notify msg\n");
 	create_system_msg(client, NOTIFY,SERVER, client->name,NULL, 0, SYS_MSG);
 	//发送完notify后，等待客户端的pull消息，client中不做变化
 }

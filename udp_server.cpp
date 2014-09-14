@@ -34,10 +34,8 @@ CLIENT * off_client(string name, int by_client);//客户端主动下线 1/服务端踢下线 
 CLIENT * check_client(string name);
 void create_and_send_com_packet(CLIENT *client, int msg_id);
 void create_and_send_system_packet(CLIENT * client, int msg_id);
-void parse_send_msg(unsigned char * rcv_data, int rcv_len, int *seq, char *data, int * data_len, int * seq_num, int *total_len)
-{
+void parse_send_msg(PACKET *rcv_data,  int *seq, char **data, int * data_len, int * seq_num, int *total_len);
 
-}
 void ack_send_msg(CLIENT *client,int msg_id, int seq);
 void ack_log_off(CLIENT *client, int msg_id);
 void notify(CLIENT * client);
@@ -49,6 +47,38 @@ void do_business();
 void ack_heartbeat_msg(CLIENT * client, int msg_id);
 void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char * buf, int len, MSG_TYPE type);
 CLIENT * update_client (string name, struct sockaddr_in rin);
+
+CLIENT * new_offline_client(string name);
+void parse_send_msg(PACKET *rcv_data,  int *seq, char **data, int * data_len, int * seq_num, int *total_len)
+{
+	char json_str[1024];
+	int json_len = rcv_data->json_len;
+	memcpy(json_str, rcv_data->data, json_len);
+	*data_len = rcv_data->len - json_len;
+	//取语音数据;
+	*data = (char *)malloc(*data_len);
+	memcpy(*data, rcv_data->data+json_len, *data_len);
+	Json::Reader reader;
+ 	Json::Value value;
+	//parse  json for:
+	//seq_num:SEND_SEQ_NUM
+	//total_len:SEND_SIZE
+	//data_len:SEND_SEQ_LEN
+	//seq:SEND_SEQ_INDEX`
+	if(reader.parse( json_str, value ))
+	{
+	    *seq_num = value.get( "SEND_SEQ_NUM", -1).asInt();
+		*total_len = value.get( "SEND_SIZE", -1).asInt();
+		*data_len = value.get( "SEND_SEQ_LEN", -1).asInt();
+		*seq = value.get( "SEND_SEQ_INDEX", -1).asInt();
+	}
+		 
+	
+
+
+	         
+}
+
 
 
 void init() {
@@ -110,7 +140,8 @@ void do_business()
             //usleep(1000*100);
             continue;
 		}
-		printf("you ip is %s at port %d, len:%d\n",	inet_ntop(AF_INET, &rin.sin_addr, str, sizeof(str)),
+		printf("----------------------------------\n"
+			   "you ip is %s at port %d, len:%d\n",	inet_ntop(AF_INET, &rin.sin_addr, str, sizeof(str)),
 												ntohs(rin.sin_port),
 												len
 												);
@@ -128,12 +159,13 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 	PACKET * rcv_pack = (PACKET *) buf;
 
     /*for test*/
-    printf("recv packet:");
+    printf("====>recv packet:");
     rcv_pack->out_put();
     /*for test*/
 
 	int pack_size = sizeof(PACKET);
 	//check
+	
 	if((rcv_pack->len + pack_size != len)
 			||(rcv_pack->head != 0xFF)
 			||(rcv_pack->order < LOG_IN)
@@ -255,7 +287,7 @@ void*  monitor_server(void * para)
 			CLIENT * client = client_it->second;
 
              /*fot test*/
-            client->output();
+            // client->output();
             /*for test*/
 
             if(client->is_on_line == 0)
@@ -287,7 +319,7 @@ void*  monitor_server(void * para)
 		}
 
 		//休眠10ms
-		usleep(5000*1000);
+		usleep(8000*1000);
 	}
     return (void *)0;
 }
@@ -344,7 +376,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 
 	//打包公共的消息包头
 	PACKET packet;
-	packet.init(smm->order, smm->size, smm->msg_id, smm->to);
+	
 	//遍历语音消息包，发送数据
 	for(int i = 0; i < smm->seq_num; i++)
 	{
@@ -360,10 +392,34 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			int t = get_time();
 			if(t - sms->last_send_msg_time < 2)
 				continue;
-			int send_len = sizeof(PACKET) + sms->len;
+			//compact json
+			string data;
+			Json::Value value;
+			value["PUSH_SEQ_NUM"] = smm->seq_num;
+			value["PUSH_SEQ_INDEX"] = sms->seq;
+			value["PUSH_SEQ_LEN"] = sms->len;
+			value["PUSH_SIZE"] = smm->size;
+			Json::FastWriter writer;
+			data = writer.write( value );
+			int json_len = data.length();
+			//compact json over
+			//			
+			packet.init(smm->order, sms->len + json_len, smm->msg_id, json_len, smm->to);
+			
+			int send_len = sizeof(PACKET) + sms->len + json_len;
 			char * send_msg = (char *)malloc(send_len);
+			//拼装三组数据
 			memcpy(send_msg, &packet, sizeof(PACKET));
-			memcpy(send_msg+sizeof(PACKET), sms->data, sms->len);
+			memcpy(send_msg+sizeof(PACKET), data.c_str(), json_len);
+			memcpy(send_msg+sizeof(PACKET)+json_len, sms->data, sms->len);
+			char str[1024];
+			printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
+												ntohs(client->sin.sin_port),
+												send_len
+												);
+			packet.out_put();
+			printf("%s\n", data.c_str());
+			printf("----------------------------------\n");
 
 			int ret = sendto(sock_fd, send_msg, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
 			free(send_msg);
@@ -391,13 +447,17 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	}
 
 	PACKET pack;
-	pack.init(sys_smm->order, sys_smm->size, sys_smm->msg_id, sys_smm->to);
+	pack.init(sys_smm->order, sys_smm->size, sys_smm->msg_id,sys_smm->size, sys_smm->to);
     /*for test begin*/
-    printf("send sys msg:");
+	char str_data[1024];
+    printf("<====send packet:");
     pack.out_put();
+	bzero(str_data, 1024);
+	memcpy(str_data, sys_smm->data, sys_smm->size);
+	printf("%s\n", str_data);
     /*for test end*/
 	/*将数据包拼装到一起后发送*/
-	int send_len =pack.len;
+	int send_len =sys_smm->size+sizeof(PACKET);
 	char * send_msg = (char *)malloc(sizeof(PACKET) + sys_smm->size);
 	memcpy(send_msg, &pack, sizeof(PACKET));
 	memcpy(send_msg+sizeof(PACKET), sys_smm->data, sys_smm->size);
@@ -408,6 +468,7 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 												ntohs(client->sin.sin_port),
 												send_len
 												);
+	printf("----------------------------------\n");
     /*for test end*/
 
 	int ret = sendto(sock_fd, send_msg, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
@@ -485,7 +546,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 
 
 	//解析语音包，查看是接收的[msg_id, seq]，并做存储
-	parse_send_msg(rcv_pack->data, rcv_pack->len, &seq, data,
+	parse_send_msg(rcv_pack,  &seq, &data,
 				   &data_len, &seq_num, &total_len);
 
 	//检查发送消息区，是否创建并初始化了该msgid
@@ -507,10 +568,18 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 	{
 		//数据回写磁盘，把此数据区从recv上摘除
 		char * data = rmm->dump_msg_2_disk(rcv_pack->msg_id);
+		
 		client->clear_recv_msg_by_id(rcv_pack->msg_id);
 
 		//重新分片，挂载到to的send map上（先挂载，再判断pull_msg）
 		CLIENT * to_client = check_client(rcv_pack->to);
+		if(to_client == NULL)
+		{
+			to_client = new_offline_client(rcv_pack->to);
+		}
+		printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
+			to_client->is_on_line, rmm->size);
+			
 
 		//随机一个发送msgid
 		int to_msg_id = rand()%65536;
@@ -521,6 +590,9 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 			printf("has same msgid:[%d]\n", to_msg_id);
 			exit(0);
 		}
+		/**/
+		/*初始化*/
+		smm->init(to_msg_id, PUSH_MSG, rcv_pack->from, rcv_pack->to, total_len);
 		//将数据放入发送映射关系数据表中
 		smm->add_msg(data, total_len);
 
@@ -528,7 +600,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 		free(data);
 
 		//检查to是否已经开启了pull_msg，如果开启了，直接挂载，不用发送notify
-		if(to_client->is_push_msg == 0)
+		if(to_client->is_push_msg == 0&& to_client->is_on_line == 1)
 		{
 			notify(to_client);
 		}
@@ -537,6 +609,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 
 void deal_pull_msg(string name , struct sockaddr_in sin)
 {
+	printf("receive [%s] pull_msg ", name.c_str());
 	CLIENT * client = check_client(name);
 	if(client == NULL)
 	{
@@ -544,7 +617,7 @@ void deal_pull_msg(string name , struct sockaddr_in sin)
 		return;
 	}
 	//lock(client->c_lock);
-	client->sin = sin;//更新sock addr
+	memcpy(&client->sin, &sin,  sizeof(struct sockaddr_in ));//更新sock addr
 	client->last_recv_keep_alive_time = get_time();//当前时间
 	client->is_push_msg = 1;
 
@@ -553,7 +626,9 @@ void deal_pull_msg(string name , struct sockaddr_in sin)
 
 void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 {
-	char *data = (char *)rcv_pack->data;
+	char data[1024];
+	bzero(data, 1024);
+	strncpy(data, (char *)rcv_pack->data, rcv_pack->json_len);
 	CLIENT * client = check_client(rcv_pack->from);
 	client->sin = sin;
 	client->last_recv_keep_alive_time = get_time();//当前时间
@@ -567,8 +642,23 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 	//ACK_MSG_ID,获取msg_id
 	//ACK_MSG_ORDER， 获取msg命令
     //等待修改
+
+	Json::Reader reader;
+ 	Json::Value value;
+	
 	int msg_id ;//= data["ACK_MSG_ID"];
 	ORDER ack_order;// =(int)data["ACK_MSG_ORDER"];
+	if(reader.parse( data, value ))
+	{
+	    msg_id = value.get( "ACK_MSG_ID", -1).asInt();
+		ack_order = (ORDER)value.get( "ACK_MSG_ORDER", -1).asInt();
+	}
+	else
+	{
+		printf("parse ACK order error");
+	}
+		
+
 	//如果是notify的响应，将notify消息置为已经发送
 	if(ack_order == NOTIFY)
 	{
@@ -584,6 +674,7 @@ void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin)
 	else if(ack_order == PUSH_MSG)
 	{
 		int seq;// = (int)data["ACK_MSG_SEQ"];
+		seq = value.get( "seq", -1).asInt();
 		SEND_MSG_MAP * smm = client->get_send_msg_by_id(msg_id);
 		if(smm == NULL)
 		{
@@ -655,6 +746,22 @@ CLIENT * off_client(string  name , int by_client)
 	return client;
 }
 
+CLIENT * new_offline_client(string name)
+{
+	CLIENT * client = check_client(name);
+	if(client == NULL)
+	{
+		client = new CLIENT(name.c_str());
+		client_map.insert(pair<string, CLIENT*>(name, client));
+	}
+	client->last_recv_keep_alive_time =0;
+	client->last_send_keep_alive_time = 0;
+	client->login_time = "";
+	client->is_on_line = 0;//是否在线
+	client->is_push_msg = 0;//是否发送push
+	client->has_ever_login = 0;
+	return client;
+}
 
 CLIENT * update_client (string name, struct sockaddr_in rin)
 {
@@ -727,6 +834,8 @@ CLIENT * check_client(string name)
 
     map<string, CLIENT*>::iterator iter;
     iter = client_map.find(name);
+	if (iter == client_map.end())
+		return NULL;
 	if((client=iter->second) == NULL)
 	{
 		return NULL;

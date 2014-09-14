@@ -18,6 +18,7 @@ using namespace std;
 #define MAXLINE 10240
 #define MIDLINE 1024
 int port = 44444;
+int per_seq_size = 1500;
 int sock_fd = -1;
 int get_time();
 void get_time_str(char * time_str);
@@ -128,6 +129,7 @@ typedef struct _SEND_MSG_MAP{
     //CLIENT * client;
 	_SEND_MSG_MAP(){
 		//init map
+		
 	}
 	~_SEND_MSG_MAP()
 	{
@@ -138,14 +140,19 @@ typedef struct _SEND_MSG_MAP{
 			delete sms;
 		}
 	}
-	void init(int msg_id, ORDER order, char * from, char * to, int size, int seq_num)
+	void init(int msg_id, ORDER order, char * from, char * to, int size)
 	{
 		this->msg_id = msg_id;
 		this->order = order;
 		memcpy(this->from, from, 16);
 		memcpy(this->to, to, 16);
 		this->size = size;
-		this->seq_num = seq_num;
+
+		if (size % per_seq_size == 0)
+			this->seq_num = size / per_seq_size;
+		else
+			this->seq_num = size / per_seq_size + 1;
+		
 		this->is_send = 0;
 		this->send_seq_num = 0;
 	}
@@ -155,14 +162,14 @@ typedef struct _SEND_MSG_MAP{
         map<int, SEND_MSG_SEQ *>::iterator iter;
 		SEND_MSG_SEQ * sms = NULL;
 		iter = send_msg_seq_map.find(seq);
+		if (iter == send_msg_seq_map.end())
+			return NULL;
         sms = iter->second;
 		return sms;
 	}
 	void add_msg(char * data, int len)
 	{
-		int per_seq_size = 1500;
 		int seq = 0;
-		int has_init = 0;
 		int index = 0;
         int data_len;
 		while(len > 0)
@@ -172,15 +179,15 @@ typedef struct _SEND_MSG_MAP{
 				data_len = len;
 			else
 				data_len = per_seq_size;
-			add_2_send_seq_map(seq, data+index, data_len, &has_init);
+			add_2_send_seq_map(seq, data+index, data_len);
 			len -= data_len;
 			index += data_len;
 			seq++;
 		}
 	}
-	void add_2_send_seq_map(int seq, char * data, int data_len, int * has_init)
+	void add_2_send_seq_map(int seq, char * data, int data_len)
 	{
-		int time = 9999;//接收到包的时间，取当前时间
+		int time = get_time();//接收到包的时间，取当前时间
 		SEND_MSG_SEQ * sms  = check_send_msg_seq(seq);
 		if(sms == NULL)
 		{
@@ -188,13 +195,14 @@ typedef struct _SEND_MSG_MAP{
 			sms->init(seq, data, data_len);
 			//添加到recv_msg_seq_map中
 			send_msg_seq_map.insert(pair<int, SEND_MSG_SEQ *>(seq, sms));
-			*has_init = 0;
+			
 		}
 		else
 		{
-			//数据包已经存在，记录log，客户端重复发送,回复ack,不需要将recv_seq_num+1
-			*has_init = 1;//已存在
+			printf("[%d] has already exist\n", seq);
 		}
+			
+	
 	}
 
 	SEND_MSG_SEQ * get_send_msg_by_seq(int seq)
@@ -202,6 +210,8 @@ typedef struct _SEND_MSG_MAP{
         map<int, SEND_MSG_SEQ *>::iterator iter;
         SEND_MSG_SEQ * sms = NULL;
         iter = send_msg_seq_map.find(seq);
+		if (iter == send_msg_seq_map.end())
+			return NULL;
         sms = iter->second;
 		return sms;
 	}
@@ -298,6 +308,8 @@ typedef struct _RECV_MSG_MAP{
         map<int, RECV_MSG_SEQ*>::iterator iter;
 		RECV_MSG_SEQ * rms = NULL;
         iter = recv_msg_seq_map.find(seq);
+		if(iter == recv_msg_seq_map.end())
+			return NULL;
         rms = iter->second;
 		return rms;
 	}
@@ -311,6 +323,8 @@ typedef struct _RECV_MSG_MAP{
             map<int, RECV_MSG_SEQ*>::iterator iter;
 			RECV_MSG_SEQ * rms ;
             iter = recv_msg_seq_map.find(i);
+			if (iter == recv_msg_seq_map.end())
+				return NULL;
             rms = iter->second;
 			memcpy(data+index, rms->data, rms->len);
 		}
@@ -426,16 +440,24 @@ typedef struct _CLIENT{
         map <int, RECV_MSG_MAP *>::iterator iter;
 		RECV_MSG_MAP * rmm = NULL;
         iter = recv_msg_arr.find(msg_id);
-        rmm = iter->second;
-		delete rmm;
-		recv_msg_arr.erase(msg_id);
+		if(iter != recv_msg_arr.end())
+		{
+			rmm = iter->second;
+			delete rmm;
+			recv_msg_arr.erase(msg_id);
+		}
+        
 	}
 	RECV_MSG_MAP * check_recv_msg_map( int msg_id, int * has_init)
 	{
         map <int, RECV_MSG_MAP *>::iterator iter;
-		RECV_MSG_MAP * rmm;
+		RECV_MSG_MAP * rmm = NULL;
         iter = recv_msg_arr.find(msg_id);
-        rmm = iter->second;
+		if (iter != recv_msg_arr.end())
+		{
+			 rmm = iter->second;
+		}
+	
 		*has_init = 1;
 		if(rmm == NULL)
 		{
@@ -451,6 +473,12 @@ typedef struct _CLIENT{
         map <int, SYSTEM_MSG_MAP*>::iterator iter;
 		SYSTEM_MSG_MAP * smm;
         iter = send_sys_msg_arr.find(msg_id);
+		if (iter == send_sys_msg_arr.end())
+		{
+			return NULL;
+		}
+			
+			
         smm = iter->second;
 		return smm;
 	}
@@ -459,15 +487,21 @@ typedef struct _CLIENT{
         map <int, SEND_MSG_MAP*>::iterator iter;
 		SEND_MSG_MAP * smm;
         iter = send_msg_arr.find(msg_id);
+		if (iter == send_msg_arr.end())
+			return NULL;
         smm = iter->second;
 		return smm;
 	}
 	SEND_MSG_MAP * get_send_msg_nx_by_id(int msg_id, int * has_init)//not exist
 	{
         map <int, SEND_MSG_MAP*>::iterator iter;
-		SEND_MSG_MAP * smm ;
+		SEND_MSG_MAP * smm = NULL;
         iter = send_msg_arr.find(msg_id);
-        smm = iter->second;
+		if(send_msg_arr.end()!=iter)
+		{
+			smm = iter->second;;
+		}
+		
 		*has_init = 1;
 		if(smm == NULL)
 		{
@@ -508,6 +542,15 @@ typedef struct _CLIENT{
 			//发送完成，但是没收到ack
 			else  if(sys_smm->is_send_ok == 1 && sys_smm->is_recv_ack ==0  && sys_smm->order == NOTIFY)
 			{
+				//客户端已经开始pull消息，删除notify消息，不需要再发送
+				if(is_push_msg == 1)
+				{
+					printf("delte notify msg\n");
+					send_sys_msg_arr.erase(sys_smm->msg_id);
+					delete sys_smm;
+					continue;
+				}
+					
 				//2s内没受到ack， 重发此消息包
 				int t = get_time();
 				if(t - sys_smm->last_send_msg_time > 2 )
@@ -592,18 +635,20 @@ typedef struct _CLIENT{
 typedef struct _PACKET{
 	int head;
 	ORDER order;
-	int len;
+	int len;//只代表数据区长度,json_len+data_len = len
 	int msg_id;
 	char from[16];
 	char to[16];
+	int json_len;
 	unsigned char data[0];
-	void init(ORDER order, int len, int msg_id, char *to)
+	void init(ORDER order, int len, int msg_id, int json_len, char *to)
 	{
         bzero(this->from, 16);
         bzero(this->to, 16);
 		head = HEAD;
 		this->order = order;
-		this->len = sizeof(_PACKET) + len;
+		this->len = len;
+		this->json_len = json_len;
         memcpy(from, "server", 16);
 		memcpy(this->to, to, 16);
 		this->msg_id = msg_id;
@@ -611,9 +656,9 @@ typedef struct _PACKET{
     void out_put()
     {
         printf("\npacket\n");
-        printf("head:[%d], order:[%d], len:[%d], msg_id:[%d], from:[%s], to:[%s]\n",
-                head, order, len, msg_id, from, to);
-        printf("\n\n");
+        printf("head:[%d], order:[%d], len:[%d], msg_id:[%d], from:[%s], to:[%s], json_len:[%d], data_len:[%d]\n",
+                head, order, len, msg_id, from, to, json_len, len - json_len);
+        printf("");
     }
 } PACKET;
 

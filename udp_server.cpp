@@ -22,7 +22,7 @@
 using namespace std;
 
 
- char * SERVER  = "SERVER";
+char * SERVER  = "SERVER";
 void dispatch(struct sockaddr_in rin, char *buf, int len);
 void deal_log_in(string name, struct sockaddr_in rin, int msg_id);
 void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin);
@@ -31,7 +31,7 @@ void deal_pull_msg(string name , struct sockaddr_in sin);
 void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin);
 void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id);
 CLIENT * off_client(string name, int by_client);//客户端主动下线 1/服务端踢下线 0
-CLIENT * check_client(string name);
+CLIENT * check_client(const char * name);
 void create_and_send_com_packet(CLIENT *client, int msg_id);
 void create_and_send_system_packet(CLIENT * client, int msg_id);
 void parse_send_msg(PACKET *rcv_data,  int *seq, char **data, int * data_len, int * seq_num, int *total_len);
@@ -263,6 +263,8 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
                 deal_ack_msg(rcv_pack,rin);
                 break;
             }
+         default:
+            ;
 	}
 	//更新心跳时间
 	CLIENT * client = check_client(rcv_pack->from);
@@ -276,7 +278,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 
 void*  monitor_server(void * para)
 {
-	int t = 0;
+	int while_time = 0;
 
 	while(1)
 	{
@@ -291,13 +293,13 @@ void*  monitor_server(void * para)
 		 * */
 
 		map<string, CLIENT *>::iterator client_it;//存放client
-		t++;
+		while_time++;
 		for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
 		{
 			CLIENT * client = client_it->second;
 
              /*fot test*/
-			if(t%5 == 0)
+			if(while_time%10 == 0)
             	client->output();
             /*for test*/
 
@@ -317,13 +319,8 @@ void*  monitor_server(void * para)
 
 			/*
 			 * 系统消息队列发送*/
-			int msg_count = client->push_sys_msg_2_queue();
-			if(msg_count == 0)
-			{
-			//语音消息已经发送完毕，清空pull_msg状态
-				client->is_push_msg = 0;
-			}
-				
+			client->push_sys_msg_2_queue();
+		
 
 			//语音消息队列
 			/*检查消息是否发送完成
@@ -331,13 +328,19 @@ void*  monitor_server(void * para)
 			 *
 			 */
 
-			client->push_com_msg_2_queue();
+			int msg_count = client->push_com_msg_2_queue();
+            	if(msg_count == 0)
+			{
+			//语音消息已经发送完毕，清空pull_msg状态
+				client->is_push_msg = 0;
+			}
+				
 
 		}
 
-		//休眠10ms
+		//休眠200ms
 		
-		usleep(2000*1000);
+		usleep(200*1000);
 	}
     return (void *)0;
 }
@@ -431,7 +434,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			memcpy(send_msg, &packet, sizeof(PACKET));
 			memcpy(send_msg+sizeof(PACKET), data.c_str(), json_len);
 			memcpy(send_msg+sizeof(PACKET)+json_len, sms->data, sms->len);
-			char str[1024];
+			//char str[1024];
 			//printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
 			//									ntohs(client->sin.sin_port),
 			//									send_len);
@@ -483,7 +486,7 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	memcpy(send_msg+sizeof(PACKET), sys_smm->data, sys_smm->size);
     
     /*for test begin*/
-    char str[MIDLINE];
+   // char str[MIDLINE];
     //printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
 	//											ntohs(client->sin.sin_port),
 	//											send_len
@@ -512,10 +515,10 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id)
 {
 
-	CLIENT * client = check_client(name);
+	CLIENT * client = check_client(name.c_str());
 	if(client == NULL)
 	{
-	   return;
+       client = update_client(name, sin);       
 	}
 	if(client->has_ever_login == 1)
 		client->is_on_line = 1;
@@ -588,8 +591,16 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 	if(rmm->recv_seq_num == seq_num)
 	{
 		//数据回写磁盘，把此数据区从recv上摘除
+		//printf("----------------------------------------------------------------------\n");
+		//rmm->output();
+        //printf("----------------------------------------------------------------------\n");
 		char * data = rmm->dump_msg_2_disk(rcv_pack->msg_id);
-		
+        //printf("\nsend data:%s, len[%d]\n", data,strlen(data));
+        //printf("----------------------------------------------------------------------\n");
+        //printf("----------------------------------------------------------------------\n");
+     
+
+        //client->output_by_msgid(rcv_pack->msg_id);
 		client->clear_recv_msg_by_id(rcv_pack->msg_id);
 
 		//重新分片，挂载到to的send map上（先挂载，再判断pull_msg）
@@ -599,8 +610,8 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 			//printf("new_offline_client\n";)
 			to_client = new_offline_client(rcv_pack->to);
 		}
-		//printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
-		//	to_client->is_on_line, rmm->size);
+		printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
+			to_client->is_on_line, rmm->size);
 			
 
 		//生成一个msg_id
@@ -634,7 +645,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 void deal_pull_msg(string name , struct sockaddr_in sin)
 {
 	//printf("receive [%s] pull_msg ", name.c_str());
-	CLIENT * client = check_client(name);
+	CLIENT * client = check_client(name.c_str());
 	if(client == NULL)
 	{
 		//回复未登录
@@ -747,7 +758,7 @@ void deal_log_in(string name, struct sockaddr_in  rin, int msg_id)
 
 CLIENT * off_client(string  name , int by_client)
 {
-	CLIENT * client = check_client(name);
+	CLIENT * client = check_client(name.c_str());
 
 	if(client == NULL)
 	{
@@ -780,7 +791,7 @@ CLIENT * off_client(string  name , int by_client)
 
 CLIENT * new_offline_client(string name)
 {
-	CLIENT * client = check_client(name);
+	CLIENT * client = check_client(name.c_str());
 	if(client == NULL)
 	{
 		client = new CLIENT(name.c_str());
@@ -797,7 +808,7 @@ CLIENT * new_offline_client(string name)
 
 CLIENT * update_client (string name, struct sockaddr_in rin)
 {
-	CLIENT * client = check_client(name);
+	CLIENT * client = check_client(name.c_str());
 	if(client == NULL)
 	{
 		client = new CLIENT(name.c_str());
@@ -860,12 +871,13 @@ void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char
 
 }
 
-CLIENT * check_client(string name)
+CLIENT * check_client(const char * name)
 {
+    
 	CLIENT * client = NULL;
 
     map<string, CLIENT*>::iterator iter;
-    iter = client_map.find(name);
+    iter = client_map.find(string(name));
 	if (iter == client_map.end())
 		return NULL;
 	if((client=iter->second) == NULL)

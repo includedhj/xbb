@@ -30,7 +30,7 @@ enum ORDER{
 
 //发送消息分片包
 typedef struct _SEND_MSG_SEQ SEND_MSG_SEQ;
-typedef struct _SEND_MSG_SEQ{
+struct _SEND_MSG_SEQ{
 	int seq; //序号
 	//unsigned char is_send; //是否发送
 	unsigned char retry_send_times; //发送重试次数，接收方此值默认为0
@@ -62,7 +62,7 @@ typedef struct _SEND_MSG_SEQ{
 
 //接收消息分片包
 typedef struct _RECV_MSG_SEQ RECV_MSG_SEQ;
-typedef struct _RECV_MSG_SEQ{
+struct _RECV_MSG_SEQ{
 	int seq; //序号
 	//unsigned char is_recv;//是否接收
 	unsigned char is_send_ack;//是否发送过ack
@@ -80,6 +80,15 @@ typedef struct _RECV_MSG_SEQ{
         memcpy(this->data, data, len);
         this->len = len;
 	}
+    void output()
+    {
+        printf("recv_msg_seq:   seq:[%d], is_send_ack:[%d], last_send_ack_time:[%d], last_recv_msg_time:[%d], data_len:[%d]\n", seq,
+                is_send_ack, last_send_ack_time, last_recv_msg_time, len);
+        char p_data[1024];
+        bzero(p_data, 1024);
+        memcpy(p_data, data, len);
+        printf("recv_msg_seq data:[%s]\n", p_data);
+    }
 	void set_last_send_ack_time(int lsat)
 	{
 
@@ -115,7 +124,7 @@ queue<SEND_MSG_POS *> global_send_queue;//全局发送队列
 //pthread_mutex_lock client_map_lock;//cient_map的锁
 map<string, CLIENT *> client_map;//存放client
 
-typedef struct _SEND_MSG_MAP{
+ struct _SEND_MSG_MAP{
 	int msg_id;//发送消息id
 	ORDER order;//命令
 	char from[16];//发送方名称
@@ -187,7 +196,7 @@ typedef struct _SEND_MSG_MAP{
 	}
 	void add_2_send_seq_map(int seq, char * data, int data_len)
 	{
-		int time = get_time();//接收到包的时间，取当前时间
+		//int time = get_time();//接收到包的时间，取当前时间
 		SEND_MSG_SEQ * sms  = check_send_msg_seq(seq);
 		if(sms == NULL)
 		{
@@ -243,7 +252,7 @@ typedef struct _SEND_MSG_MAP{
 
 //接收语音消息分片映射
 typedef struct _RECV_MSG_MAP RECV_MSG_MAP;
-typedef struct _RECV_MSG_MAP{
+ struct _RECV_MSG_MAP{
 	int msg_id;//接收消息id
 	ORDER order;//命令
 	char from[16];//发送方名称
@@ -267,6 +276,25 @@ typedef struct _RECV_MSG_MAP{
 			delete rms;
 		}
 	}
+    void output()
+    {
+        RECV_MSG_SEQ * rms;
+        printf("\nrecv_msg_map:msg_id:[%d], order:[%d], from:[%s], to:[%s], size:[%d], seq_num:[%d], recv_seq_num:[%d]\n", 
+            msg_id, order, from, to, size, seq_num, recv_seq_num);
+        
+        for(int i = 0; i < seq_num; i++)
+        {
+            printf("%d  ", i);
+            if(NULL == (rms=check_recv_msg_seq(i)))
+            {
+                printf("NULL\n");
+            }
+            else
+            {
+                rms->output();
+            }
+        }
+    }
 	void init(int msg_id, ORDER order, char * from, int from_len,
 			     char * to, int to_len, int size,int seq_num)
 	{
@@ -327,6 +355,8 @@ typedef struct _RECV_MSG_MAP{
 				return NULL;
             rms = iter->second;
 			memcpy(data+index, rms->data, rms->len);
+            index += rms->len;
+            //printf("rms len:%d\n", rms->len);
 		}
 		return data;
 	}
@@ -377,7 +407,7 @@ typedef struct{
 } SYSTEM_MSG_MAP;
 
 /*客户端结构信息*/
-typedef struct _CLIENT{
+ struct _CLIENT{
 
 	struct sockaddr_in sin;
 
@@ -437,14 +467,24 @@ typedef struct _CLIENT{
                 name, is_push_msg, is_on_line, login_time.c_str(), 
                 last_recv_keep_alive_time,
                 last_send_keep_alive_time,
-                recv_msg_arr.size(),
-                send_msg_arr.size(),
-                send_sys_msg_arr.size()
+                (int)recv_msg_arr.size(),
+                (int)send_msg_arr.size(),
+                (int)send_sys_msg_arr.size()
                 );
         printf("\n\n");
     }
 
-
+    void output_by_msgid(int mid)
+    {
+      int has_init;
+      RECV_MSG_MAP * rmm = check_recv_msg_map(mid, &has_init);
+      if(rmm == NULL)
+      {
+        printf("client:[%s], output_by_msgid, not exist msgid[%d]", name,mid);
+      }
+      rmm->output();
+    }
+    
 	void clear_recv_msg_by_id(int msg_id)
 	{
         map <int, RECV_MSG_MAP *>::iterator iter;
@@ -592,14 +632,15 @@ typedef struct _CLIENT{
 		}
 		return msg_count;
 	}
-	void push_com_msg_2_queue()
+	int push_com_msg_2_queue()
 	{
-
+        int msg_count = 0;
 		//将client发送向量中的语音数据放入全局发送队列,等待发送
 		 map<int,SEND_MSG_MAP *>::iterator it;
 		 for(it=send_msg_arr.begin();it!=send_msg_arr.end();++it)
 		 {
-			 int msg_id = it->first;
+            msg_count++;
+	//		 int msg_id = it->first;
 			 SEND_MSG_MAP * smm = it->second;
 
 			 //将自己清空
@@ -614,6 +655,7 @@ typedef struct _CLIENT{
 			 }
 
 		 }
+         return msg_count;
 	}
 
 
@@ -671,7 +713,7 @@ typedef struct _PACKET{
         printf("\npacket\n");
         printf("head:[%d], order:[%d], len:[%d], msg_id:[%d], from:[%s], to:[%s], json_len:[%d], data_len:[%d]\n",
                 head, order, len, msg_id, from, to, json_len, len - json_len);
-        printf("");
+        printf(" \n");
     }
 } PACKET;
 

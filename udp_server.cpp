@@ -300,7 +300,7 @@ void*  monitor_server(void * para)
 	    pthread_mutex_lock(&thread_lock);
         while_time++;
 		map<string, CLIENT *>::iterator client_it;//´æ·Åclient
-		int print_time = while_time%20==0?1:0;
+		int print_time = while_time%200==0?1:0;
 		for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
 		{
 			CLIENT * client = client_it->second;

@@ -135,6 +135,7 @@ map<string, CLIENT *> client_map;//存放client
 	int send_seq_num;//收到ack后加1
     map<int, SEND_MSG_SEQ *> send_msg_seq_map;
     int last_send_time;
+    int is_broadcast;//是否为广播消息
 	//vector  <SEND_MSG_SEQ *> send_msg_seq_map;
     //CLIENT * client;
 	_SEND_MSG_MAP(){
@@ -151,7 +152,7 @@ map<string, CLIENT *> client_map;//存放client
 			delete sms;
 		}
 	}
-	void init(int msg_id, ORDER order, char * from, char * to, int size)
+	void init(int msg_id, ORDER order, char * from, char * to, int size, int is_broadcast)
 	{
 		this->msg_id = msg_id;
 		this->order = order;
@@ -167,6 +168,7 @@ map<string, CLIENT *> client_map;//存放client
 		this->is_send = 0;
 		this->send_seq_num = 0;
         this->last_send_time = 0;//上次_SEND_MSG_MAP包检测发送时间
+        this->is_broadcast = is_broadcast;//设定广播消息
 	}
 
 	SEND_MSG_SEQ * check_send_msg_seq( int seq)

@@ -23,6 +23,7 @@ using namespace std;
 
 
 char * SERVER  = "SERVER";
+char * ALL = "ALL";
 pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER; 
 
 void dispatch(struct sockaddr_in rin, char *buf, int len);
@@ -49,8 +50,12 @@ void do_business();
 void ack_heartbeat_msg(CLIENT * client, int msg_id);
 void create_system_msg(CLIENT * client, ORDER order,char * from, char * to, char * buf, int len, MSG_TYPE type);
 CLIENT * update_client (string name, struct sockaddr_in rin);
-
 CLIENT * new_offline_client(string name);
+void mount_data_2_client(char * from_name, char *  to_name, char * data, int total_len, int is_broadcast);
+
+
+
+
 void parse_send_msg(PACKET *rcv_data,  int *seq, char **data, int * data_len, int * seq_num, int *total_len)
 {
 	char json_str[1024];
@@ -75,10 +80,6 @@ void parse_send_msg(PACKET *rcv_data,  int *seq, char **data, int * data_len, in
 		*seq = value.get( "SEND_SEQ_INDEX", -1).asInt();
 	}
 		 
-	
-
-
-	         
 }
 
 
@@ -453,8 +454,8 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			data = writer.write( value );
 			int json_len = data.length();
 			//compact json over
-			//			
-			packet.init(smm->order, sms->len + json_len, smm->msg_id, json_len, smm->to);
+			//广播消息，设定to为ALL
+			packet.init(smm->order, sms->len + json_len, smm->msg_id, json_len, (smm->is_broadcast)?ALL:smm->to);
             packet.set_from(smm->from);
 			
 			int send_len = sizeof(PACKET) + sms->len + json_len;
@@ -621,61 +622,90 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 	//检验是否全部发送完毕
 	if(rmm->recv_seq_num == seq_num && rmm->is_recv_over == 0)
 	{
-		//数据回写磁盘，把此数据区从recv上摘除
-		//printf("----------------------------------------------------------------------\n");
-		//rmm->output();
+         //数据回写磁盘，把此数据区从recv上摘除
+    	//printf("----------------------------------------------------------------------\n");
+    	//rmm->output();
         //printf("----------------------------------------------------------------------\n");
-		char * data = rmm->dump_msg_2_disk(rcv_pack->msg_id);
+    	char * data = rmm->dump_msg_2_disk(rcv_pack->msg_id);
         //printf("\nsend data:%s, len[%d]\n", data,strlen(data));
         //printf("----------------------------------------------------------------------\n");
         //printf("----------------------------------------------------------------------\n");
-     
 
-        //client->output_by_msgid(rcv_pack->msg_id);
-        
-        //数据暂时不能删除，否则可能会收到重复数据
-		//client->clear_recv_msg_by_id(rcv_pack->msg_id);
+        printf("recv [%s]---->[%s]  voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to, rmm->size);
 
-		//重新分片，挂载到to的send map上（先挂载，再判断pull_msg）
-		CLIENT * to_client = check_client(rcv_pack->to);
-		if(to_client == NULL)
-		{
-			//printf("new_offline_client\n";)
-			to_client = new_offline_client(rcv_pack->to);
-		}
-		printf("recv [%s]---->[%s] (online[%d]) voice msg, length:[%d]\n", rcv_pack->from, rcv_pack->to,
-			to_client->is_on_line, rmm->size);
-			
+        //群发消息,
+        if(!strcmp(rcv_pack->to, ALL))
+        {
+            char * to_name;
+            map<string, CLIENT *>::iterator client_it;//存放client		
+		    for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
+		    {
+			    CLIENT * client = client_it->second;
+                if(client == NULL)
+                {
+                    printf("WARING: client is null\n");
+                    continue;
+                }
+                if(!strcmp(rcv_pack->from, client->name))
+                    continue;
+                mount_data_2_client(rcv_pack->from, client->name, data, rmm->size, 1);                
+		    }
+        }
+        //发送给某一个
+        else
+        {
+            mount_data_2_client(rcv_pack->from, rcv_pack->to, data, rmm->size, 0);
+		    
+        }
 
-		//生成一个msg_id
-		int to_msg_id = to_client->gen_msgid();
-		SEND_MSG_MAP * smm = to_client->get_send_msg_nx_by_id(to_msg_id, &has_init);
-		if(has_init == 1)
-		{
-			//log 已经有相同的msg_id,exit
-			printf("has same msgid:[%d]\n", to_msg_id);
-			exit(0);
-		}
-		/**/
-		/*初始化*/
-		smm->init(to_msg_id, PUSH_MSG, rcv_pack->from, rcv_pack->to, total_len);
-		//将数据放入发送映射关系数据表中
-		smm->add_msg(data, total_len);
+        //释放数据空间
+	    free(data); 
 
-		//释放数据空间
-		free(data);
-
-		//检查to是否已经开启了pull_msg，如果开启了，直接挂载，不用发送notify
-		//printf("to_client detail:\n");
-		//to_client->output();
-		if(to_client->is_push_msg == 0&& to_client->is_on_line == 1)
-		{
-            printf("notify client[%s], time:[%d]\n", to_client->name, get_time());
-			notify(to_client);
-		}
 	}
 }
+void mount_data_2_client(char * from_name, char *  to_name, char * data, int total_len, int is_broadcast)
+{
+    int has_init = 0;
 
+    //client->output_by_msgid(rcv_pack->msg_id);
+    
+    //数据暂时不能删除，否则可能会收到重复数据
+	//client->clear_recv_msg_by_id(rcv_pack->msg_id);    
+
+	//重新分片，挂载到to的send map上（先挂载，再判断pull_msg）
+	CLIENT * to_client = check_client(to_name);
+	if(to_client == NULL)
+	{
+		//printf("new_offline_client\n";)
+		to_client = new_offline_client(to_name);
+	}
+
+
+	//生成一个msg_id
+	int to_msg_id = to_client->gen_msgid();
+	SEND_MSG_MAP * smm = to_client->get_send_msg_nx_by_id(to_msg_id, &has_init);
+	if(has_init == 1)
+	{
+		//log 已经有相同的msg_id,exit
+		printf("client[%s] has same msgid:[%d]\n", to_client->name,to_msg_id);
+		exit(0);
+	}
+	/**/
+	/*初始化smm*/
+	smm->init(to_msg_id, PUSH_MSG, from_name, to_name, total_len, is_broadcast);
+	//将数据放入发送映射关系数据表中
+	smm->add_msg(data, total_len);
+
+	//检查to是否已经开启了pull_msg，如果开启了，直接挂载，不用发送notify
+	//printf("to_client detail:\n");
+	//to_client->output();
+	if(to_client->is_push_msg == 0&& to_client->is_on_line == 1)
+	{
+        printf("notify client[%s], time:[%d]\n", to_client->name, get_time());
+		notify(to_client);
+	}
+    
+}
 void deal_pull_msg(string name , struct sockaddr_in sin)
 {
 	printf("receive [%s] pull_msg \n", name.c_str());

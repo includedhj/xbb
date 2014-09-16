@@ -23,6 +23,8 @@ using namespace std;
 
 
 char * SERVER  = "SERVER";
+pthread_mutex_t thread_lock = PTHREAD_MUTEX_INITIALIZER; 
+
 void dispatch(struct sockaddr_in rin, char *buf, int len);
 void deal_log_in(string name, struct sockaddr_in rin, int msg_id);
 void deal_ack_msg(PACKET * rcv_pack,  struct sockaddr_in sin);
@@ -148,7 +150,9 @@ void do_business()
         
     
 		//分发消息,buf中只会包含一个包
+		pthread_mutex_lock(&thread_lock);
 		dispatch(rin, buf, len);
+        pthread_mutex_unlock(&thread_lock);
 	}
 }
 
@@ -159,7 +163,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 
     /*for test*/
     printf("====>recv packet:");
-    rcv_pack->out_put();
+    rcv_pack->output();
     /*for test*/
 
 	int pack_size = sizeof(PACKET);
@@ -278,8 +282,9 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 
 void*  monitor_server(void * para)
 {
-	int while_time = 0;
 
+
+    int while_time = 0;
 	while(1)
 	{
 		/* 1.检查客户端状态
@@ -291,15 +296,16 @@ void*  monitor_server(void * para)
 		 * 3.检查客户端的语音消息队列，找到已经全部收到ack的消息，后删除
 		 *
 		 * */
-
+	    pthread_mutex_lock(&thread_lock);
+        while_time++;
 		map<string, CLIENT *>::iterator client_it;//存放client
-		while_time++;
+		int print_time = while_time%20==0?1:0;
 		for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
 		{
 			CLIENT * client = client_it->second;
 
              /*fot test*/
-			if(while_time%10 == 0)
+			if(print_time)
             	client->output();
             /*for test*/
 
@@ -329,16 +335,29 @@ void*  monitor_server(void * para)
 			 */
 
 			int msg_count = client->push_com_msg_2_queue();
-            	if(msg_count == 0)
+            if(msg_count == 0)
 			{
-			//语音消息已经发送完毕，清空pull_msg状态
-				client->is_push_msg = 0;
+			    //语音消息已经发送完毕，清空pull_msg状态
+			    if(client->is_push_msg == 1)
+			    {
+			        printf("modify client[%s] is_push_msg = 0\n", client->name);
+				    client->is_push_msg = 0;
+			    }
 			}
+            //纠正错误状态，期待下次发送
+            //有语音消息，客户端在线，未开启push消息，上次notify时间2s之前
+            else if(msg_count > 0 && client->is_push_msg == 0 && (t - client->last_send_notify_time > 2))
+            { 
+                 //client->is_push_msg = 1;
+                 printf("WARNING:send notify 2 client[%s] for revise push msg\n", client->name);
+                 notify(client);
+            }
 				
 
 		}
 
 		//休眠200ms
+		pthread_mutex_unlock(&thread_lock);
 		
 		usleep(200*1000);
 	}
@@ -356,11 +375,17 @@ void* send_msg(void * para)
 	//读取全局发送队列，发送数据.
 	while(1)
 	{
+        pthread_mutex_lock(&thread_lock);
+        if(global_send_queue.empty())
+        {
+            pthread_mutex_unlock(&thread_lock);
+            continue;
+        }
 		SEND_MSG_POS *smp = global_send_queue.front();
-        
-		if(smp == NULL)
+        if(smp == NULL)
 		{
-			usleep(100*1000);//没有可发送的数据，休息一下,100ms
+            pthread_mutex_unlock(&thread_lock);
+			usleep(500*1000);//没有可发送的数据，休息一下,100ms
 			continue;
 		}
         global_send_queue.pop();
@@ -368,7 +393,9 @@ void* send_msg(void * para)
 		if(client == NULL)
 		{
 			//log error;
+			
 			printf("client:[%s] is null\n", smp->name);
+            pthread_mutex_unlock(&thread_lock);
 			continue;
 		}
   
@@ -382,6 +409,7 @@ void* send_msg(void * para)
 			create_and_send_system_packet( client,  smp->msg_id);
 			break;
 		}
+        pthread_mutex_unlock(&thread_lock);
 	}
     return (void *)0;
 }
@@ -439,7 +467,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			//									ntohs(client->sin.sin_port),
 			//									send_len);
 			printf("=====>send voice data");									
-			packet.out_put();
+			packet.output();
 			printf("%s\n", data.c_str());
 			printf("----------------------------------\n");
 
@@ -474,7 +502,7 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
     /*for test begin*/
 	char str_data[1024];
     printf("<====send sys packet:");
-    pack.out_put();
+    pack.output();
 	bzero(str_data, 1024);
 	memcpy(str_data, sys_smm->data, sys_smm->size);
 	//printf("%s\n", str_data);
@@ -516,12 +544,14 @@ void deal_heartbeat_msg(string name, struct sockaddr_in sin, int msg_id)
 {
 
 	CLIENT * client = check_client(name.c_str());
-	if(client == NULL)
+    //从未上线或者已掉线
+	if(client == NULL || client->is_on_line == 0)
 	{
-       client = update_client(name, sin);       
+       client = update_client(name, sin);  
 	}
 	if(client->has_ever_login == 1)
 		client->is_on_line = 1;
+
 	memcpy(&client->sin, &sin, sizeof(struct sockaddr_in));
 	client->last_recv_keep_alive_time = get_time();//当前时间
 	ack_heartbeat_msg(client, msg_id);
@@ -588,7 +618,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 	ack_send_msg(client,rcv_pack->msg_id, seq);
 
 	//检验是否全部发送完毕
-	if(rmm->recv_seq_num == seq_num)
+	if(rmm->recv_seq_num == seq_num && rmm->is_recv_over == 0)
 	{
 		//数据回写磁盘，把此数据区从recv上摘除
 		//printf("----------------------------------------------------------------------\n");
@@ -601,7 +631,9 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
      
 
         //client->output_by_msgid(rcv_pack->msg_id);
-		client->clear_recv_msg_by_id(rcv_pack->msg_id);
+        
+        //数据暂时不能删除，否则可能会收到重复数据
+		//client->clear_recv_msg_by_id(rcv_pack->msg_id);
 
 		//重新分片，挂载到to的send map上（先挂载，再判断pull_msg）
 		CLIENT * to_client = check_client(rcv_pack->to);
@@ -637,6 +669,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 		//to_client->output();
 		if(to_client->is_push_msg == 0&& to_client->is_on_line == 1)
 		{
+            printf("notify client[%s], time:[%d]\n", to_client->name, get_time());
 			notify(to_client);
 		}
 	}
@@ -644,7 +677,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
 
 void deal_pull_msg(string name , struct sockaddr_in sin)
 {
-	//printf("receive [%s] pull_msg ", name.c_str());
+	printf("receive [%s] pull_msg \n", name.c_str());
 	CLIENT * client = check_client(name.c_str());
 	if(client == NULL)
 	{
@@ -655,7 +688,9 @@ void deal_pull_msg(string name , struct sockaddr_in sin)
 	memcpy(&client->sin, &sin,  sizeof(struct sockaddr_in ));//更新sock addr
 	client->last_recv_keep_alive_time = get_time();//当前时间
 	client->is_push_msg = 1;
-
+     printf("modify client [%s] is_pull_msg = 1\n", name.c_str());
+   
+    
 	//unlock(client->c_lock);
 }
 
@@ -949,6 +984,7 @@ void notify(CLIENT * client)
 {
 	//printf("----------create and send notify msg\n");
 	create_system_msg(client, NOTIFY,SERVER, client->name,NULL, 0, SYS_MSG);
+    client->last_send_notify_time = get_time();
 	//发送完notify后，等待客户端的pull消息，client中不做变化
 }
 int get_time()

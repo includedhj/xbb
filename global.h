@@ -134,10 +134,12 @@ map<string, CLIENT *> client_map;//存放client
 	unsigned char is_send;//是否发送完成
 	int send_seq_num;//收到ack后加1
     map<int, SEND_MSG_SEQ *> send_msg_seq_map;
+    int last_send_time;
 	//vector  <SEND_MSG_SEQ *> send_msg_seq_map;
     //CLIENT * client;
 	_SEND_MSG_MAP(){
 		//init map
+		
 		
 	}
 	~_SEND_MSG_MAP()
@@ -164,6 +166,7 @@ map<string, CLIENT *> client_map;//存放client
 		
 		this->is_send = 0;
 		this->send_seq_num = 0;
+        this->last_send_time = 0;//上次_SEND_MSG_MAP包检测发送时间
 	}
 
 	SEND_MSG_SEQ * check_send_msg_seq( int seq)
@@ -240,13 +243,15 @@ map<string, CLIENT *> client_map;//存放client
 		smp->msg_id = msg_id;
         memcpy(smp->name, name, 16);
 		smp->type = COM_MSG;//语音消息
+        int t = get_time();//上次数据监测时间
 
-
-		//为全局发送队列加锁
-		//pthread_lock(global_send_queue_mutex);
-		global_send_queue.push(smp);
-		//为全局发送队列解锁
-		//pthread_unlock(global_send_queue_mutex);
+        //间隔上次发送时间大于8s，才能发送数据
+	    if(t - this->last_send_time > 8)
+	    {
+            this->last_send_time = t;
+		    global_send_queue.push(smp);
+	    }
+	
 	}
 };
 
@@ -259,7 +264,8 @@ typedef struct _RECV_MSG_MAP RECV_MSG_MAP;
 	char to[16];//接收方名称
 	int size;//语音数据大小，单位字节
 	int seq_num;//分片数量
-	int recv_seq_num;
+	int recv_seq_num;//接收到的分片数量
+	int is_recv_over;//是否全部接收完成，防止重复接收
 	//unsigned char is_recv; //是否已经接收过该msgid
 	map<int, RECV_MSG_SEQ *> recv_msg_seq_map;
 	//vector <RECV_MSG_SEQ *> recv_msg_seq_map;
@@ -279,8 +285,8 @@ typedef struct _RECV_MSG_MAP RECV_MSG_MAP;
     void output()
     {
         RECV_MSG_SEQ * rms;
-        printf("\nrecv_msg_map:msg_id:[%d], order:[%d], from:[%s], to:[%s], size:[%d], seq_num:[%d], recv_seq_num:[%d]\n", 
-            msg_id, order, from, to, size, seq_num, recv_seq_num);
+        printf("\nrecv_msg_map:msg_id:[%d], order:[%d], from:[%s], to:[%s], size:[%d], seq_num:[%d], recv_seq_num:[%d], is_recv_over[%d]\n", 
+            msg_id, order, from, to, size, seq_num, recv_seq_num, is_recv_over);
         
         for(int i = 0; i < seq_num; i++)
         {
@@ -306,6 +312,7 @@ typedef struct _RECV_MSG_MAP RECV_MSG_MAP;
 		this->size = size;
 		this->seq_num = seq_num;
 		recv_seq_num = 0;
+        is_recv_over = 0;
 
 	}
 	void add_2_recv_seq_map(int seq, char * data, int data_len, int * has_init)
@@ -358,6 +365,8 @@ typedef struct _RECV_MSG_MAP RECV_MSG_MAP;
             index += rms->len;
             //printf("rms len:%d\n", rms->len);
 		}
+        //已经接收完成
+        is_recv_over = 1;
 		return data;
 	}
 
@@ -425,6 +434,10 @@ typedef struct{
 	//最后一次发送的心跳时间
 	int last_send_keep_alive_time;
 
+    //上次发送notify时间
+    int last_send_notify_time;
+
+
 
 
 	//接收语音消息向量(文字)
@@ -448,6 +461,7 @@ typedef struct{
 		is_on_line = 0;
 		has_ever_login = 0;
 		msg_id = rand()%65535;
+        last_send_notify_time = 0;//上次发送notify时间为0
 		//init vector
 	}
 	int gen_msgid()
@@ -639,7 +653,7 @@ typedef struct{
 		 map<int,SEND_MSG_MAP *>::iterator it;
 		 for(it=send_msg_arr.begin();it!=send_msg_arr.end();++it)
 		 {
-            msg_count++;
+            
 	//		 int msg_id = it->first;
 			 SEND_MSG_MAP * smm = it->second;
 
@@ -653,6 +667,11 @@ typedef struct{
 			 {
 				 send_msg_arr.erase(smm->msg_id);
 			 }
+             else{
+                 //未发送完的数据计数
+                 msg_count++;
+             }
+              
 
 		 }
          return msg_count;
@@ -708,7 +727,7 @@ typedef struct _PACKET{
 		memcpy(this->to, to, 16);
 		this->msg_id = msg_id;
 	}
-    void out_put()
+    void output()
     {
         printf("\npacket\n");
         printf("head:[%d], order:[%d], len:[%d], msg_id:[%d], from:[%s], to:[%s], json_len:[%d], data_len:[%d]\n",

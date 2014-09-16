@@ -385,7 +385,7 @@ void* send_msg(void * para)
         if(smp == NULL)
 		{
             pthread_mutex_unlock(&thread_lock);
-			usleep(500*1000);//没有可发送的数据，休息一下,100ms
+			usleep(200*1000);//没有可发送的数据，休息一下,100ms
 			continue;
 		}
         global_send_queue.pop();
@@ -455,6 +455,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			//compact json over
 			//			
 			packet.init(smm->order, sms->len + json_len, smm->msg_id, json_len, smm->to);
+            packet.set_from(smm->from);
 			
 			int send_len = sizeof(PACKET) + sms->len + json_len;
 			char * send_msg = (char *)malloc(send_len);

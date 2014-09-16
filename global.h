@@ -727,6 +727,10 @@ typedef struct _PACKET{
 		memcpy(this->to, to, 16);
 		this->msg_id = msg_id;
 	}
+    void set_from(char * from)
+    {
+        memcpy(this->from, from, 16);
+    }
     void output()
     {
         printf("\npacket\n");

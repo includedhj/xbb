@@ -322,6 +322,7 @@ void*  monitor_server(void * para)
 				//将客户端踢下线
                 //struct sockaddr_in rin;
 				off_client(client->name, 0);
+                continue;
 			}
 
 			/*

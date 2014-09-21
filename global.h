@@ -752,7 +752,7 @@ typedef struct _PACKET{
             char data_print_t[MIDLINE];
             memcpy(data_print_t, data, json_len);
             data_print_t[json_len] = '\0';
-            printf("json_data:[%s]", data_print_t);
+            printf("json_data:[%s]\n", data_print_t);
         }
         
     }

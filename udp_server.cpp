@@ -164,7 +164,7 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 
     /*for test*/
    // printf("====>recv packet:");
-    rcv_pack->output_read_able("=======>");
+    rcv_pack->output_read_able("RECV =======>");
     /*for test*/
 
 	int pack_size = sizeof(PACKET);
@@ -505,7 +505,7 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
     /*for test begin*/
 	char str_data[1024];
     //printf("<====send sys packet:");
-    pack.output_read_able("<=======");
+    pack.output_read_able("SEND <=======");
 	bzero(str_data, 1024);
 	memcpy(str_data, sys_smm->data, sys_smm->size);
 	//printf("%s\n", str_data);

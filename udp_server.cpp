@@ -426,8 +426,7 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 		return;
 	}
 
-	//打包公共的消息包头
-	PACKET packet;
+	
 	
 	//遍历语音消息包，发送数据
 	for(int i = 0; i < smm->seq_num; i++)
@@ -443,7 +442,10 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			 * */
 			int t = get_time();
 			if(t - sms->last_send_msg_time < 2)
+			{
+                printf("msgid:[%d], seq:[%d] , last_send_msg_time:[%d], not time:[%d] less 2s, no need resend\n",smm->msg_id, sms->seq, sms->last_send_msg_time, t);
 				continue;
+			}
 			//compact json
 			string data;
 			Json::Value value;
@@ -456,26 +458,33 @@ void create_and_send_com_packet(CLIENT *client, int msg_id)
 			int json_len = data.length();
 			//compact json over
 			//广播消息，设定to为ALL
-			packet.init(smm->order, sms->len + json_len, smm->msg_id, json_len, (smm->is_broadcast)?ALL:smm->to);
-            packet.set_from(smm->from);
-			
+			//打包公共的消息包头
 			int send_len = sizeof(PACKET) + sms->len + json_len;
-			char * send_msg = (char *)malloc(send_len);
+	        PACKET * packet = (PACKET *)malloc(send_len);
+            memcpy(packet->data,data.c_str(), json_len);
+            memcpy(packet->data+json_len, sms->data, sms->len);
+            
+			packet->init(smm->order, sms->len + json_len, smm->msg_id, json_len, (smm->is_broadcast)?ALL:smm->to, NULL);
+            packet->set_from(smm->from);
+			
+			
+			//char * send_msg = (char *)malloc(send_len);
 			//拼装三组数据
-			memcpy(send_msg, &packet, sizeof(PACKET));
-			memcpy(send_msg+sizeof(PACKET), data.c_str(), json_len);
-			memcpy(send_msg+sizeof(PACKET)+json_len, sms->data, sms->len);
+			//memcpy(send_msg, &packet, sizeof(PACKET));
+			//memcpy(send_msg+sizeof(PACKET), data.c_str(), json_len);
+			//memcpy(send_msg+sizeof(PACKET)+json_len, sms->data, sms->len);
 			//char str[1024];
 			//printf("dest ip is %s at port %d, send len:%d\n", inet_ntop(AF_INET, &client->sin.sin_addr, str, sizeof(str)),
 			//									ntohs(client->sin.sin_port),
 			//									send_len);
-			printf("=====>send voice data");									
-			packet.output();
-			printf("%s\n", data.c_str());
-			printf("----------------------------------\n");
+											
+			packet->output_read_able("=======>send voice data");
+			//printf("%s\n", data.c_str());
+			//printf("----------------------------------\n");
 
-			int ret = sendto(sock_fd, send_msg, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
-			free(send_msg);
+			int ret = sendto(sock_fd, packet, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
+			//free(send_msg);
+			free(packet);
 			if(ret == -1)
 			{
 				perror("error call to sendto\n");
@@ -500,21 +509,21 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 		return;
 	}
 
-	PACKET pack;
-	pack.init(sys_smm->order, sys_smm->size, sys_smm->msg_id,sys_smm->size, sys_smm->to);
+	PACKET * pack = (PACKET *)malloc(sizeof(PACKET)+sys_smm->size);
+	pack->init(sys_smm->order, sys_smm->size, sys_smm->msg_id,sys_smm->size, sys_smm->to, sys_smm->data);
     /*for test begin*/
-	char str_data[1024];
+	//char str_data[1024];
     //printf("<====send sys packet:");
-    pack.output_read_able("SEND <=======");
-	bzero(str_data, 1024);
-	memcpy(str_data, sys_smm->data, sys_smm->size);
+    pack->output_read_able("SEND <=======");
+	//bzero(str_data, 1024);
+	//memcpy(str_data, sys_smm->data, sys_smm->size);
 	//printf("%s\n", str_data);
     /*for test end*/
 	/*将数据包拼装到一起后发送*/
 	int send_len =sys_smm->size+sizeof(PACKET);
-	char * send_msg = (char *)malloc(sizeof(PACKET) + sys_smm->size);
-	memcpy(send_msg, &pack, sizeof(PACKET));
-	memcpy(send_msg+sizeof(PACKET), sys_smm->data, sys_smm->size);
+	//char * send_msg = (char *)malloc(sizeof(PACKET) + sys_smm->size);
+	//memcpy(send_msg, &pack, sizeof(PACKET));
+	//memcpy(send_msg+sizeof(PACKET), sys_smm->data, sys_smm->size);
     
     /*for test begin*/
    // char str[MIDLINE];
@@ -525,8 +534,9 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	//printf("----------------------------------\n");
     /*for test end*/
 
-	int ret = sendto(sock_fd, send_msg, send_len, 0, (struct sockaddr *) &(client->sin),sizeof(client->sin));
-	free(send_msg);
+	int ret = sendto(sock_fd, (char *)pack, send_len, 0, (struct sockaddr *) &(client->sin), sizeof(client->sin));
+	//free(send_msg);
+    free(pack);
 	if(ret == -1)
 	{
 		perror("error call to sendto\n");

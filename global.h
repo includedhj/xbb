@@ -720,7 +720,7 @@ typedef struct _PACKET{
 	char to[16];
 	int json_len;
 	unsigned char data[0];
-	void init(ORDER order, int len, int msg_id, int json_len, char *to)
+	void init(ORDER order, int len, int msg_id, int json_len, char *to, unsigned char * data)
 	{
         bzero(this->from, 16);
         bzero(this->to, 16);
@@ -731,11 +731,14 @@ typedef struct _PACKET{
         memcpy(from, "server", 16);
 		memcpy(this->to, to, 16);
 		this->msg_id = msg_id;
+        if(data != NULL)
+            memcpy(this->data, data, len);
 	}
     void set_from(char * from)
     {
         memcpy(this->from, from, 16);
     }
+
     
     void output_read_able(const char * print_str)
     {

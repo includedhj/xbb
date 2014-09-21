@@ -163,8 +163,8 @@ void dispatch(struct sockaddr_in rin, char *buf, int len)
 	PACKET * rcv_pack = (PACKET *) buf;
 
     /*for test*/
-    printf("====>recv packet:");
-    rcv_pack->output();
+   // printf("====>recv packet:");
+    rcv_pack->output_read_able("=======>");
     /*for test*/
 
 	int pack_size = sizeof(PACKET);
@@ -504,8 +504,8 @@ void create_and_send_system_packet(CLIENT * client, int msg_id)
 	pack.init(sys_smm->order, sys_smm->size, sys_smm->msg_id,sys_smm->size, sys_smm->to);
     /*for test begin*/
 	char str_data[1024];
-    printf("<====send sys packet:");
-    pack.output();
+    //printf("<====send sys packet:");
+    pack.output_read_able("<=======");
 	bzero(str_data, 1024);
 	memcpy(str_data, sys_smm->data, sys_smm->size);
 	//printf("%s\n", str_data);
@@ -637,7 +637,7 @@ void deal_send_msg(PACKET * rcv_pack, struct sockaddr_in sin)
         //群发消息,
         if(!strcmp(rcv_pack->to, ALL))
         {
-            char * to_name;
+           
             map<string, CLIENT *>::iterator client_it;//存放client		
 		    for(client_it=client_map.begin();client_it!=client_map.end();++client_it)
 		    {

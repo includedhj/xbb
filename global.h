@@ -17,6 +17,7 @@ using namespace std;
 #define HEAD 0xff
 #define MAXLINE 10240
 #define MIDLINE 1024
+#define TINYLIINE 128
 int port = 44444;
 int per_seq_size = 1000;
 int sock_fd = -1;
@@ -27,6 +28,8 @@ void get_time_str(char * time_str);
 enum ORDER{
 	LOG_IN = 1, LOG_OFF, SEND_MSG, NOTIFY, PUSH_MSG, PULL_MSG, KEEP_ALIVE, ACK, ORDER_NUM
 } ;
+char ORDER_PRINT[ORDER_NUM][TINYLIINE] = {"ORDER_BEGIN", "LOG_IN", "LOG_OFF", "SEND_MSG", "NOTIFY", "PUSH_MSG", "PULL_MSG", 
+                                 "KEEP_ALIVE", "ACK"};
 
 //发送消息分片包
 typedef struct _SEND_MSG_SEQ SEND_MSG_SEQ;
@@ -732,6 +735,25 @@ typedef struct _PACKET{
     void set_from(char * from)
     {
         memcpy(this->from, from, 16);
+    }
+    
+    void output_read_able(const char * print_str)
+    {
+        printf("readable:packet\n %s\n", print_str);
+        char * order_print_p;
+        if(order <= 0 || order > ORDER_NUM)
+            order_print_p = "error";
+        else
+            order_print_p = ORDER_PRINT[order];
+        printf("head:[%d], order:[%s], len:[%d], msg_id:[%d], from:[%s], to:[%s], json_len:[%d], data_len:[%d]\n",
+                head, order_print_p, len, msg_id, from, to, json_len, len - json_len);
+        if(json_len > 0)
+        {
+            char data_print_t[MIDLINE];
+            memcpy(data_print_t, data, json_len);
+            data_print_t[json_len] = '\0';
+        }
+        
     }
     void output()
     {

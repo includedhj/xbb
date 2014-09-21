@@ -739,7 +739,7 @@ typedef struct _PACKET{
     
     void output_read_able(const char * print_str)
     {
-        printf("readable:packet\n %s\n", print_str);
+        printf("\n%s\n", print_str);
         char * order_print_p;
         if(order <= 0 || order > ORDER_NUM)
             order_print_p = "error";
@@ -752,6 +752,7 @@ typedef struct _PACKET{
             char data_print_t[MIDLINE];
             memcpy(data_print_t, data, json_len);
             data_print_t[json_len] = '\0';
+            printf("json_data:[%s]", data_print_t);
         }
         
     }
